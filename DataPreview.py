@@ -23,13 +23,13 @@ from pygame import mixer
 import copy
 from typing import Union,List
 
-from DataPreprocessing import get_dataloaders, get_datasets
+from DataPreprocessing import  get_datasets
 
 path='../dataset/cifar10'
-train_dataloader,test_dataloader=get_datasets(path)
+train_dataloader,test_datasets=get_datasets(path)
 
 samples = [[] for _ in range(10)]
-for image, label in test_dataloader:
+for image, label in test_datasets:
   print(label)
   if len(samples[label]) < 4:
     samples[label].append(image)
@@ -43,7 +43,7 @@ for index in range(40):
   image = image.permute(1, 2, 0)
 
   # Convert from class index to class name
-  label = test_dataloader.classes[label]
+  label = test_datasets.classes[label]
 
   # Visualize the image
   plt.subplot(4, 10, index + 1)

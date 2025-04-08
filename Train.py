@@ -22,16 +22,16 @@ print("Device:",device)
 seed=0
 random.seed(seed)
 
-path='../mrleyedataset'
-
+path='../dataset/cifar10'
+classes=10
 train_dataloader,test_dataloader=get_dataloaders(path,batch_size=64)
 
 select_model='vgg'
 if select_model=='vgg':
-    model=VGG()
+    model=VGG(classes=classes)
 elif select_model=='resnet':
     model = models.resnet18(weights='DEFAULT')
-    model.fc = torch.nn.Linear(model.fc.in_features, 2)  # num_classes is the number of output classes
+    model.fc = torch.nn.Linear(model.fc.in_features, classes)  # num_classes is the number of output classes
 else:
     print("Model does not exists")
     exit
