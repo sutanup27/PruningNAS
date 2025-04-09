@@ -17,29 +17,28 @@ KiB = 1024 * Byte
 MiB = 1024 * KiB
 GiB = 1024 * MiB
 # Initialize the model
-path="../mrleyedataset"
+path='../dataset/cifar10'
+
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='checkpoint\\vgg_mrl_99.0929946899414.pth'
+model_path='checkpoint/vgg/vgg_cifar_92.23999786376953.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 
 model.to(device)
 select_model='vgg'
-pruning_type='FGP'
+pruning_type='CP'
 
 
 sparsity_dict = {      #for FGP
-'backbone.conv0.weight': 0.4,
-'backbone.conv1.weight': 0.90,
-'backbone.conv2.weight': 0.80,
-'backbone.conv3.weight': 0.6,
-'backbone.conv4.weight': 0.9,
-'backbone.conv5.weight': 0.9,
+'backbone.conv0.weight': 0.6,
+'backbone.conv1.weight': 0.7,
+'backbone.conv2.weight': 0.75,
+'backbone.conv3.weight': 0.75,
+'backbone.conv4.weight': 0.7,
+'backbone.conv5.weight': 0.8,
 'backbone.conv6.weight': 0.8,
-'backbone.conv7.weight': 0.95,
-'backbone.conv8.weight': 0.95,
-'backbone.conv9.weight': 0.97,
-'fc2.weight': 0.95,
+'backbone.conv7.weight': 0.9,
+'fc2.weight': 0.8,
 }
 
 # sparsity_dict = {       #for CP
@@ -56,7 +55,7 @@ sparsity_dict = {      #for FGP
 # 'fc2.weight': 0.95,
 # }
 
-train_dataloader,test_dataloader=get_dataloaders(path, batch_size=64 ) # Basemodel
+train_dataloader,test_dataloader=get_dataloaders(path ) # Basemodel
 dense_model_accuracy=evaluate(model,test_dataloader)
 print('dense_model_accuracy:',dense_model_accuracy)
 pruned_model=copy.deepcopy(model)
@@ -90,7 +89,7 @@ criterion = nn.CrossEntropyLoss()
 
 pruned_model_accuracy,best_pruned_model,accuracies=TrainingPrunned(pruned_model,train_dataloader,test_dataloader,criterion, optimizer, pruner,scheduler=None,num_finetune_epochs=num_finetune_epochs,isCallback=isCallback)
 
-torch.save(best_pruned_model, f'./checkpoint/{select_model}_mrl_{pruning_type}_{pruned_model_accuracy}.pth')
+torch.save(best_pruned_model, f'./checkpoint/{select_model}/{select_model}_cifar_{pruning_type}_{pruned_model_accuracy}.pth')
 
 sparse_model_accuracy,_ = evaluate(best_pruned_model, test_dataloader)
 

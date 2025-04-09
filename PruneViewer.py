@@ -10,34 +10,38 @@ from Viewer import plot_weight_distribution  # Ensure you import your correct mo
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 # Initialize the model
-model = VGG()  # Replace with your actual model class
-path="../mrleyedataset"
+model_type='vgg'
+path='../dataset/cifar10'
+
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='vgg_mrl_99.09.pth'
+model_path='checkpoint/vgg/vgg_cifar_92.23999786376953.pth'
 # Load the saved state_dict correctly
-state_dict = torch.load(model_path, map_location=torch.device(device),weights_only=True)  # Use 'cpu' if necessary
-missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
+model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 model.to(device)
 
 plot_weight_distribution(model)
-train_dataloader,test_dataloader=get_dataloaders(path,batch_size=64 )
+train_dataloader,test_dataloader=get_dataloaders(path)
 ############# calculate sparsities (optional) #############################################
+sparse_pkl=f'checkpoint/{model_type}/sparsities_{model_type}.pkl'
+acc_pkl=f'checkpoint/{model_type}/accuracies_{model_type}.pkl'
 
-# sparsities, accuracies = sensitivity_scan(
-#     model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0)
+sparsities, accuracies = sensitivity_scan(
+    model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0)
 
-# with open("sparsities.pkl", "wb") as f:
-#     pickle.dump(sparsities, f)
+with open(sparse_pkl, "wb") as f:
+    pickle.dump(sparsities, f)
 
-# with open("accuracies.pkl", "wb") as f:
-#     pickle.dump(accuracies, f)
+with open(acc_pkl, "wb") as f:
+    pickle.dump(accuracies, f)
 
 ############################################################################################
-with open("sparsities.pkl", "rb") as f:
+with open(sparse_pkl, "rb") as f:
     sparsities = pickle.load(f)
 
-with open("accuracies.pkl", "rb") as f:
+with open(acc_pkl, "rb") as f:
     accuracies = pickle.load(f)
+print(accuracies)
+print(sparsities)
 dense_model_accuracy,_=evaluate(model,test_dataloader)
-
+print(dense_model_accuracy)
 plot_sensitivity_scan(model, sparsities, accuracies, dense_model_accuracy)
