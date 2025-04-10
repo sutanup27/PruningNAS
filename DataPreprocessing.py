@@ -20,11 +20,14 @@ std = [1.2540, 1.2479, 1.2031]      #[0.2023, 0.1994, 0.2010]
 
 image_size = 32
 train_transform=Compose([
-        RandomCrop(image_size, padding=4),
-        RandomHorizontalFlip(),
-        ToTensor(),
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
+        transforms.RandomRotation(10),
+        transforms.ToTensor(),
         Normalize(mean, std),  # ImageNet normalization
     ])
+
 test_transform= Compose([
         ToTensor(),
         Normalize(mean, std),  # ImageNet normalization
