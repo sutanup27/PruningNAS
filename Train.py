@@ -12,6 +12,7 @@ from torchvision.datasets import *
 from torchvision.transforms import *
 import torchvision.models as models
 from DataPreprocessing import train_transform,test_transform,get_dataloaders
+from ResNet import ResNet18
 from TrainingModules import evaluate
 from VGG import VGG
 from TrainingModules import Training
@@ -26,11 +27,11 @@ path='../dataset/cifar10'
 classes=10
 train_dataloader,test_dataloader=get_dataloaders(path,batch_size=64)
 
-select_model='vgg'
+select_model='resnet18'
 if select_model=='vgg':
     model=VGG(classes=classes)
-elif select_model=='resnet':
-    model = models.resnet18(weights='DEFAULT')
+elif select_model=='resnet18':
+    model = ResNet18(weights='DEFAULT')
     model.fc = torch.nn.Linear(model.fc.in_features, classes)  # num_classes is the number of output classes
 else:
     print("Model does not exists")
@@ -58,7 +59,7 @@ print(f"Best model accuray:", metric)
 plot_accuracy(accs)
 plot_loss(losses,test_losses)
 
-torch.save(model, f'./checkpoint/{select_model}_mrl_{metric}.pth')
+torch.save(model, f'./checkpoint/{select_model}/{select_model}_cifar_{metric}.pth')
 
 
     

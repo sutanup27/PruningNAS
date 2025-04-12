@@ -11,7 +11,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 # Initialize the model
 model = VGG()  # Replace with your actual model class
-path="../mrleyedataset"
+path='../dataset/cifar10'
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
 model_path='vgg_mrl_99.09.pth'
 # Load the saved state_dict correctly

@@ -17,14 +17,14 @@ KiB = 1024 * Byte
 MiB = 1024 * KiB
 GiB = 1024 * MiB
 # Initialize the model
-path="../mrleyedataset"
+path='../dataset/cifar10'
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
 model_path='checkpoint\\vgg_mrl_99.0929946899414.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 
 model.to(device)
-select_model='vgg'
+select_model='resnet18'
 pruning_type='FGP'
 
 

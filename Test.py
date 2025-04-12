@@ -22,7 +22,7 @@ MiB = 1024 * KiB
 GiB = 1024 * MiB
 # Move model and tensors to device
 
-path='../mrleyedataset'
+path='../dataset/cifar10'
 # Initialize the model
 
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
@@ -32,7 +32,7 @@ model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' i
 model.to(device)
 # Print out missing/unexpected keys for debugging
 
-train_dataloader,test_dataloader=get_dataloaders(path, train_transform=train_transform, test_transform=test_transform)
+train_dataloader,test_dataloader=get_dataloaders(path)
 ########################################test model#####################################
 # Set model to evaluation mode
 # model.eval()

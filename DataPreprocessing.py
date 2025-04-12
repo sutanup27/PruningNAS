@@ -31,17 +31,19 @@ def set_seed(seed=42):
     torch.cuda.manual_seed_all(seed)  # If using multi-GPU
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False  # Slows training but ensures reproducibility
+mean = [0.4914, 0.4822, 0.4465]
+std = [0.2023, 0.1994, 0.2010]
 
 image_size = 32
 train_transform=Compose([
         RandomCrop(image_size, padding=4),
         RandomHorizontalFlip(),
         ToTensor(),
-        Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # ImageNet normalization
+        Normalize(mean, std),  # ImageNet normalization
     ])
 test_transform= Compose([
         ToTensor(),
-        Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # ImageNet normalization
+        Normalize(),  # ImageNet normalization
     ])
  
 def get_datasets(path,train_transform=train_transform,test_transform=test_transform,train_test_val_pecentage=[0.80, 0.20]):
