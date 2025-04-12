@@ -43,7 +43,7 @@ train_transform=Compose([
     ])
 test_transform= Compose([
         ToTensor(),
-        Normalize(),  # ImageNet normalization
+        Normalize(mean, std),  # ImageNet normalization
     ])
  
 def get_datasets(path,train_transform=train_transform,test_transform=test_transform,train_test_val_pecentage=[0.80, 0.20]):
