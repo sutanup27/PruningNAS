@@ -1,11 +1,27 @@
+import cv2
+import os
+from collections import defaultdict, OrderedDict
 import numpy as np
 import random
 import torch
+from matplotlib import pyplot as plt
+from torch import nn
 from torch.optim import *
 from torch.optim.lr_scheduler import *
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader,random_split,Subset,TensorDataset
+from torchprofile import profile_macs
 from torchvision.datasets import *
 from torchvision.transforms import *
+from tqdm.auto import tqdm
+from torch.utils.data import ConcatDataset
+import torchvision.models as models
+import torchvision
+from torchprofile import profile_macs
+from sklearn.metrics import confusion_matrix,precision_score, recall_score, f1_score
+import time
+from pygame import mixer
+import copy
+from typing import Union,List
  
 
 def set_seed(seed=42):
@@ -15,22 +31,17 @@ def set_seed(seed=42):
     torch.cuda.manual_seed_all(seed)  # If using multi-GPU
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False  # Slows training but ensures reproducibility
-mean =[-0.3308, -0.3385, -0.3125]   #[0.4914, 0.4822, 0.4465]
-std = [1.2540, 1.2479, 1.2031]      #[0.2023, 0.1994, 0.2010]
 
 image_size = 32
 train_transform=Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
-        transforms.RandomRotation(10),
-        transforms.ToTensor(),
-        Normalize(mean, std),  # ImageNet normalization
+        RandomCrop(image_size, padding=4),
+        RandomHorizontalFlip(),
+        ToTensor(),
+        Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # ImageNet normalization
     ])
-
 test_transform= Compose([
         ToTensor(),
-        Normalize(mean, std),  # ImageNet normalization
+        Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # ImageNet normalization
     ])
  
 def get_datasets(path,train_transform=train_transform,test_transform=test_transform,train_test_val_pecentage=[0.80, 0.20]):
@@ -63,33 +74,3 @@ def get_dataloaders(path,train_transform=train_transform,test_transform=test_tra
     return dataloader['train'],dataloader['test']
 
 
-def calculate_mean_std(loader):
-    # Load dataset without normalization
-    transform = transforms.Compose([
-        transforms.ToTensor()  # Important: no normalization here
-    ])
-
-    # CIFAR-10 training set
-    mean = 0.0
-    std = 0.0
-    nb_samples = 0
-
-    for images, _ in loader:
-        batch_samples = images.size(0)  # get the batch size
-        images = images.view(batch_samples, images.size(1), -1)  # [B, C, H*W]
-        mean += images.mean(2).sum(0)  # mean over pixels, sum over batch
-        std += images.std(2).sum(0)
-        nb_samples += batch_samples
-
-    mean /= nb_samples
-    std /= nb_samples
-
-    return mean, std
-
-# path='../dataset/cifar10'
-
-# train_dataloader,test_dataloader=get_dataloaders(path)
-
-# mean,std=calculate_mean_std(train_dataloader)
-# print("Calculated Mean:", mean)
-# print("Calculated Std:", std)
