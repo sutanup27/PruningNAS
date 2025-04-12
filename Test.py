@@ -26,7 +26,7 @@ path='../dataset/cifar10'
 # Initialize the model
 
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='checkpoint\\vgg_mrl_99.0929946899414.pth'
+model_path='checkpoint/resnet18/resnet18_cifar_95.29999542236328.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 model.to(device)
@@ -36,7 +36,7 @@ train_dataloader,test_dataloader=get_dataloaders(path)
 ########################################test model#####################################
 # Set model to evaluation mode
 # model.eval()
-input_tensor=torch.randn(1, 3, 80, 80).to(device)
+input_tensor=torch.randn(1, 3, 32, 32).to(device)
 # output = model(input_tensor)  # Ensure input_tensor is properly formatted
 # print('output:',output)
 #######################################################################################
@@ -63,7 +63,7 @@ f1 = f1_score(all_labels, all_preds, average='macro')
 print(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}")
 conf_matrix=confusion_matrix(all_labels, all_preds)
 print(conf_matrix)
-latency=measure_latency(model)
+latency=measure_latency(model,input_tensor)
 print('CPU latency:',latency)
-latency=measure_latency(model,d=device)
+latency=measure_latency(model,input_tensor,d=device)
 print('GPU latency:',latency)

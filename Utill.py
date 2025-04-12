@@ -192,19 +192,20 @@ def print_model(model):
 
 #   can directly leads to model size reduction and speed up.
 @torch.no_grad()
-def measure_latency(model, n_warmup=20, n_test=100, d='cpu'):
-    dummy_input=torch.randn(1, 3, 80, 80).to(d)
+def measure_latency(main_model,dummy_input, n_warmup=20, n_test=100, d='cpu'):
+    model=copy.deepcopy(main_model)
     model.to(d)
+    input=copy.deepcopy(dummy_input)
+    input=input.to(d)
     model.eval()
     # warmup
     for _ in range(n_warmup):
-        _ = model(dummy_input)
+        _ = model(input)
     # real test
     t1 = time.time()
     for _ in range(n_test):
-        _ = model(dummy_input)
+        _ = model(input)
     t2 = time.time()
-    model.to(device)
     return (t2 - t1) / n_test  # average latency
 
 def get_num_channels_to_keep(channels: int, prune_ratio: float) -> int:
