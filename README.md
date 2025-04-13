@@ -6,7 +6,7 @@
 num_epochs=20
 - optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 - scheduler = CosineAnnealingLR(optimizer, num_epochs)
-FGP:
+### FGP:
 - sparsity_dict = {       #for VGG
 'backbone.conv0':0.80,
 'backbone.conv1':0.90,
@@ -19,7 +19,7 @@ FGP:
 'fc2':0.90,
 }
 
-CP:
+### CP:
  sparsity_dict = {       #for VGG
  'backbone.conv0':0.70,
  'backbone.conv1':0.80,
@@ -33,17 +33,17 @@ CP:
  }
 
 ## Parameter configuration for Resnet18:
-num_epochs=200
-optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
-scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- num_epochs=200
+- optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
+- scheduler = CosineAnnealingLR(optimizer, num_epochs)
 
-FGP:
+### FGP:
 epoch=20
-optimizer = SGD( model.parameters(), lr=0.001,  momentum=0.9,  weight_decay=5e-4,) 
+- optimizer = SGD( model.parameters(), lr=0.001,  momentum=0.9,  weight_decay=5e-4,) 
 <!-- optimizer = SGD( model.parameters(), lr=0.0001,  momentum=0.9,  weight_decay=5e-4,)  -->
-scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- scheduler = CosineAnnealingLR(optimizer, num_epochs)
 
-sparsity_dict = {      #for F
+- sparsity_dict = {      #for F
 'conv1':0.85,
 'layer1.0.conv1':0.90,
 'layer1.0.conv2':0.90,
