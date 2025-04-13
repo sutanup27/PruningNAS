@@ -1,3 +1,4 @@
+import pickle
 from ResNet import ResNet18
 from torch import nn
 
@@ -16,6 +17,11 @@ model=VGG(classes=10)
 #     if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
 #          print(f'\'{name}\':0.90,')
     
-    
-accuracy=[.2,.3,.5]
-print(type(accuracy))
+accuracies_path='checkpoint/Resnet-18/Resnet-18_accuracies.pkl'
+with open(accuracies_path, "rb") as f:
+    sparsities = pickle.load(f)
+for s in sparsities:
+    s=[ (i,a) for i,a in enumerate(s) if a>94.79]
+    print(s[-1][0]+1)
+
+

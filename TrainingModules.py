@@ -17,7 +17,6 @@ def train(
   criterion: nn.Module,
   optimizer: Optimizer,
   epoch=0,
-  scheduler=None,
   callbacks = None
 ) -> float:
   model.train()
@@ -41,8 +40,6 @@ def train(
     loss.backward()
     # Update optimizer and LR scheduler
     optimizer.step()
-    if scheduler is not None:
-           scheduler.step()
 
     if callbacks is not None:
         for callback in callbacks:
@@ -151,4 +148,7 @@ def TrainingPrunned(pruned_model,train_dataloader,test_dataloader,criterion, opt
             best_accuracy = test_acc
             best_model=copy.deepcopy(pruned_model)
         print(f'    Epoch {epoch+1} Test accuracy:{test_acc:.2f}% / Best Accuracy: {best_accuracy:.2f}%, train loss: {train_loss:.4f}, test loss {test_loss:.4f}')
+        if scheduler is not None:
+          scheduler.step()
+
     return best_accuracy, best_model, accuracies, train_losses,test_losses

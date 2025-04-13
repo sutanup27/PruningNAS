@@ -24,10 +24,10 @@ path='../dataset/cifar10'
 classes=10
 train_dataloader,test_dataloader=get_dataloaders(path,batch_size=64)
 
-select_model='vgg'
-if select_model=='vgg':
+select_model='Resnet-18'
+if select_model=='Vgg-16':
     model=VGG(classes=classes)
-elif select_model=='resnet18':
+elif select_model=='Resnet-18':
     model = ResNet18()
     model.fc = torch.nn.Linear(model.fc.in_features, classes)  # num_classes is the number of output classes
 else:
@@ -40,9 +40,6 @@ model = model.to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 
-# lambda_lr = lambda epoch: math.sqrt(.1) ** (epoch // 7)
-# lambda_lr = lambda epoch: 0.1 ** (epoch // 5)
-# scheduler=LambdaLR(optimizer,lambda_lr)
 num_epochs=20
 scheduler = CosineAnnealingLR(optimizer, num_epochs)
 # scheduler = CosineAnnealingLR(optimizer, T_max=50)

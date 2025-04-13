@@ -36,3 +36,33 @@ CP:
 num_epochs=200
 optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 scheduler = CosineAnnealingLR(optimizer, num_epochs)
+
+FGP:
+epoch=20
+optimizer = SGD( model.parameters(), lr=0.001,  momentum=0.9,  weight_decay=5e-4,) 
+<!-- optimizer = SGD( model.parameters(), lr=0.0001,  momentum=0.9,  weight_decay=5e-4,)  -->
+scheduler = CosineAnnealingLR(optimizer, num_epochs)
+
+sparsity_dict = {      #for F
+'conv1':0.85,
+'layer1.0.conv1':0.90,
+'layer1.0.conv2':0.90,
+'layer1.1.conv1':0.90,
+'layer1.1.conv2':0.90,
+'layer2.0.conv1':0.75,
+'layer2.0.conv2':0.90,
+'layer2.0.shortcut.0':0.80,
+'layer2.1.conv1':0.80,
+'layer2.1.conv2':0.70,
+'layer3.0.conv1':0.65,
+'layer3.0.conv2':0.90,
+'layer3.0.shortcut.0':0.75,
+'layer3.1.conv1':0.80,
+'layer3.1.conv2':0.80,
+'layer4.0.conv1':0.90,
+'layer4.0.conv2':0.95,
+'layer4.0.shortcut.0':0.95,
+'layer4.1.conv1':0.95,
+'layer4.1.conv2':0.95,
+'fc':0.80,
+}

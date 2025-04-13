@@ -15,15 +15,16 @@ def plot_accuracy(accs,titel_append='',save_path=None,):
     # Add labels and title
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
-    plt.title('Learning curve of accuracy',titel_append)
+    plt.title('Learning curve of accuracy'+titel_append)
 
     # Show the legend
     plt.legend()
 
-    if save_path is not None:
+    if save_path is None:
         plt.show()     # Display the plot
     else:
-        plt.save(save_path) # or save 
+        plt.savefig(save_path) # or save 
+    plt.close()
 
 
 def plot_loss(train_losses, test_losses, titel_append='',save_path=None):
@@ -33,21 +34,22 @@ def plot_loss(train_losses, test_losses, titel_append='',save_path=None):
     # Add labels and title
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy, training and validation loss')
-    plt.title('Learning curve of training and validation loss',titel_append)
+    plt.title('Learning curve of training and validation loss'+titel_append)
 
     # Show the legend
     plt.legend()
 
-    if save_path is not None:
+    if save_path is None:
         plt.show()     # Display the plot
     else:
-        plt.save(save_path) # or save 
+        plt.savefig(save_path) # or save 
+    plt.close()
 
 
 def plot_weight_distribution(model, bins=256, count_nonzero_only=False):
     layer_count=0
-    for name, param in model.named_parameters():
-        if param.dim() > 1:
+    for name, param in model.named_modules():
+        if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
             layer_count=   layer_count+1
     col= round(3*math.sqrt(layer_count/12.0))
     row= round(layer_count/col)
@@ -60,12 +62,12 @@ def plot_weight_distribution(model, bins=256, count_nonzero_only=False):
         if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
             ax = axes[plot_index]
             if count_nonzero_only:
-                param_cpu = param.detach().view(-1).cpu()
+                param_cpu = param.weight.detach().view(-1).cpu()
                 param_cpu = param_cpu[param_cpu != 0].view(-1)
                 ax.hist(param_cpu, bins=bins, density=True,
                         color = 'blue', alpha = 0.5)
             else:
-                ax.hist(param.detach().view(-1).cpu(), bins=bins, density=True,
+                ax.hist(param.weight.detach().view(-1).cpu(), bins=bins, density=True,
                         color = 'blue', alpha = 0.5)
             ax.set_xlabel(name)
             ax.set_ylabel('density')
@@ -74,3 +76,4 @@ def plot_weight_distribution(model, bins=256, count_nonzero_only=False):
     fig.tight_layout(h_pad=15,w_pad=5)
     fig.subplots_adjust(top=0.925,left=0.05, bottom=0.05)
     plt.show()
+    plt.close()

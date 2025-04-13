@@ -124,7 +124,7 @@ def sensitivity_scan(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=
 
 
 
-def plot_sensitivity_scan(model, sparsities, accuracies, dense_model_accuracy):
+def plot_sensitivity_scan(model, sparsities, accuracies, dense_model_accuracy,save_path=None):
     layer_count=0
     for name, param in model.named_modules():
         if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear):
@@ -157,8 +157,11 @@ def plot_sensitivity_scan(model, sparsities, accuracies, dense_model_accuracy):
     fig.suptitle('Sensitivity Curves: Validation Accuracy vs. Pruning Sparsity')
     #fig.tight_layout()
     fig.subplots_adjust(top=0.9)
-    plt.savefig("sensitivity_scan.png") 
-    plt.show()
+    if save_path is None:
+        plt.show()
+    else:
+        plt.savefig("sensitivity_scan.png") 
+    plt.close()
 
 def recover_model(PATH,model):
         cp = torch.load(download_url(PATH), map_location="cpu")

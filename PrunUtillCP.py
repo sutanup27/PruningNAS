@@ -105,11 +105,12 @@ def apply_channel_sorting_on_resnet18(model):
     return model
 
 def apply_channel_sorting(model,model_type):
-    if model_type=='vgg':
+    if model_type=='Vgg-16':
         return apply_channel_sorting_on_vgg(model)
-    elif model_type=='resnet18':
+    elif model_type=='Resnet-18':
         return apply_channel_sorting_on_resnet18(model)
     else:
+        print('model_type doesn\'t exists')
         exit(0)
 
 
@@ -230,11 +231,12 @@ def channel_prune_resnet18(model, prune_ratio: Union[dict, float]) :
 
 
 def channel_prune(model, prune_ratio: Union[dict, float],model_type):
-    if model_type=='vgg':
+    if model_type=='Vgg-16':
         return channel_prune_vgg(model, prune_ratio)
-    elif model_type=='resnet18':
+    elif model_type=='Resnet-18':
         return channel_prune_resnet18(model, prune_ratio)
     else:
+        print('model_type doesn\'t exists')
         exit(0)
 
 def ChannelPrunner(model,channel_pruning_ratio,model_type):
