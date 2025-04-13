@@ -32,7 +32,7 @@ num_epochs=20
  'fc2':0.8,
  }
 
-## Parameter configuration for Resnet18:
+## Parameter configuration for Resnet-18:
 - num_epochs=200
 - optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 - scheduler = CosineAnnealingLR(optimizer, num_epochs)
