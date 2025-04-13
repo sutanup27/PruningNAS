@@ -17,6 +17,7 @@ def train(
   criterion: nn.Module,
   optimizer: Optimizer,
   epoch=0,
+  scheduler=None,
   callbacks = None
 ) -> float:
   model.train()
@@ -40,12 +41,16 @@ def train(
     loss.backward()
     # Update optimizer and LR scheduler
     optimizer.step()
+    if scheduler is not None:
+           scheduler.step()
 
     if callbacks is not None:
         for callback in callbacks:
             callback()
 
   return total_loss/len(dataloader)
+
+
 
 def predict(model , input):
     # model.to(device)
@@ -122,6 +127,8 @@ def Training( model, train_dataloader, test_dataloader, criterion, optimizer, nu
 
 def TrainingPrunned(pruned_model,train_dataloader,test_dataloader,criterion, optimizer, pruner,scheduler=None,num_finetune_epochs=5,isCallback=True):
     accuracies=[]
+    train_losses=[]
+    test_losses=[]
     if scheduler:
        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_finetune_epochs)
     best_accuracy = 0
@@ -134,12 +141,14 @@ def TrainingPrunned(pruned_model,train_dataloader,test_dataloader,criterion, opt
            callbacks=[lambda: pruner.apply(pruned_model)]
         else:
            callbacks=None
-        train_loss=train(pruned_model, train_dataloader, criterion, optimizer, scheduler,callbacks=callbacks )
+        train_loss=train(pruned_model, train_dataloader, criterion, optimizer,epoch+1,callbacks=callbacks )
         test_acc ,test_loss = evaluate(pruned_model, test_dataloader,criterion)
         accuracies.append(test_acc)
+        train_losses.append(train_loss)
+        test_losses.append(test_loss)
         is_best = test_acc > best_accuracy
         if is_best:
             best_accuracy = test_acc
             best_model=copy.deepcopy(pruned_model)
         print(f'    Epoch {epoch+1} Test accuracy:{test_acc:.2f}% / Best Accuracy: {best_accuracy:.2f}%, train loss: {train_loss:.4f}, test loss {test_loss:.4f}')
-    return best_accuracy, best_model, accuracies
+    return best_accuracy, best_model, accuracies, train_losses,test_losses

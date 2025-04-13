@@ -1,6 +1,7 @@
 import math
 import os
 from matplotlib import pyplot as plt
+from torch import nn
 from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
@@ -8,35 +9,39 @@ from torchvision.transforms import *
 from DataPreprocessing import get_datasets,test_transform,train_transform
 
 
-def plot_accuracy(accs):
+def plot_accuracy(accs,titel_append='',save_path=None,):
     print(accs)
     plt.plot(range(len(accs)), accs, label='Accuracy', color='b')  # Plot first curve in blue
     # Add labels and title
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
-    plt.title('Learning curve of accuracy')
+    plt.title('Learning curve of accuracy',titel_append)
 
     # Show the legend
     plt.legend()
 
-    # Display the plot
-    plt.show()
+    if save_path is not None:
+        plt.show()     # Display the plot
+    else:
+        plt.save(save_path) # or save 
 
 
-def plot_loss(train_losses, test_losses):
+def plot_loss(train_losses, test_losses, titel_append='',save_path=None):
     plt.plot(range(len(train_losses)), train_losses, label='Training Loss', color='r')  # Plot second curve in red
     plt.plot(range(len(test_losses)), test_losses, label='Test Loss', color='g')  # Plot second curve in red
 
     # Add labels and title
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy, training and validation loss')
-    plt.title('Learning curve of training and validation loss')
+    plt.title('Learning curve of training and validation loss',titel_append)
 
     # Show the legend
     plt.legend()
 
-    # Display the plot
-    plt.show()
+    if save_path is not None:
+        plt.show()     # Display the plot
+    else:
+        plt.save(save_path) # or save 
 
 
 def plot_weight_distribution(model, bins=256, count_nonzero_only=False):
@@ -51,8 +56,8 @@ def plot_weight_distribution(model, bins=256, count_nonzero_only=False):
     fig, axes = plt.subplots(row,col, figsize=(40,40),constrained_layout=True)
     axes = axes.ravel()
     plot_index = 0
-    for name, param in model.named_parameters():
-        if param.dim() > 1:
+    for name, param in model.named_modules():
+        if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
             ax = axes[plot_index]
             if count_nonzero_only:
                 param_cpu = param.detach().view(-1).cpu()

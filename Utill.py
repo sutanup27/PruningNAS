@@ -105,17 +105,17 @@ def sensitivity_scan(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=
     sparsities = np.arange(start=scan_start, stop=scan_end, step=scan_step)
     accuracies = []
     named_conv_weights = [(name, param) for (name, param) \
-                          in model.named_parameters() if param.dim() > 1]
+                          in model.named_modules() if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear)]
     for i_layer, (name, param) in enumerate(named_conv_weights):
-        param_clone = param.detach().clone()
+        param_clone = param.weight.detach().clone()
         accuracy = []
         for sparsity in sparsities:
-            fine_grained_prune(param.detach(), sparsity=sparsity)
+            fine_grained_prune(param.weight.detach(), sparsity=sparsity)
             acc,_ = evaluate(model, dataloader, verbose=False)
             if verbose:
                 print(f'\r    sparsity={sparsity:.2f}: accuracy={acc:.2f}%', end='')
             # restore
-            param.copy_(param_clone)
+            param.weight.copy_(param_clone)
             accuracy.append(acc)
         if verbose:
             print(f'\r    sparsity=[{",".join(["{:.2f}".format(x) for x in sparsities])}]: accuracy=[{", ".join(["{:.2f}%".format(x) for x in accuracy])}]', end='')
@@ -126,8 +126,8 @@ def sensitivity_scan(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=
 
 def plot_sensitivity_scan(model, sparsities, accuracies, dense_model_accuracy):
     layer_count=0
-    for name, param in model.named_parameters():
-        if param.dim() > 1:
+    for name, param in model.named_modules():
+        if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear):
             layer_count=   layer_count+1
     col= round(3*math.sqrt(layer_count/12.0))
     row= round(layer_count/col)
@@ -138,8 +138,8 @@ def plot_sensitivity_scan(model, sparsities, accuracies, dense_model_accuracy):
     fig, axes = plt.subplots(col, row, figsize=(50,50),constrained_layout=True)
     axes = axes.ravel()
     plot_index = 0
-    for name, param in model.named_parameters():
-        if param.dim() > 1:
+    for name, param in model.named_modules():
+        if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear):
             ax = axes[plot_index]
             curve = ax.plot(sparsities, accuracies[plot_index])
             line = ax.plot(sparsities, [lower_bound_accuracy] * len(sparsities))
@@ -165,25 +165,6 @@ def recover_model(PATH,model):
         return model.load_state_dict(cp)
 
 
-class FineGrainedPruner:
-    def __init__(self, model, sparsity_dict):
-        self.masks = FineGrainedPruner.prune(model, sparsity_dict)
-
-    @torch.no_grad()
-    def apply(self, model):
-        for name, param in model.named_parameters():
-            if name in self.masks:
-                param *= self.masks[name]
-
-    @staticmethod
-    @torch.no_grad()
-    def prune(model, sparsity_dict):
-        masks = dict()
-        for name, param in model.named_parameters():
-            if param.dim() > 1: # we only prune conv and fc weights
-                masks[name] = fine_grained_prune(param, sparsity_dict[name],prune_type="magnitude_based")
-        return masks
-    
 def print_model(model):
     for name, param in model.named_parameters():
         if param.requires_grad:
@@ -215,109 +196,3 @@ def get_num_channels_to_keep(channels: int, prune_ratio: float) -> int:
     ##################### YOUR CODE STARTS HERE #####################
     return round(channels*(1-prune_ratio))
     ##################### YOUR CODE ENDS HERE #####################
-
-@torch.no_grad()
-def channel_prune(model,
-                  prune_ratio: Union[dict, float]) :
-    """Apply channel pruning to each of the conv layer in the backbone
-    Note that for prune_ratio, we can either provide a floating-point number,
-    indicating that we use a uniform pruning rate for all layers, or a list of
-    numbers to indicate per-layer pruning rate.
-    """
-    # sanity check of provided prune_ratio
-    assert isinstance(prune_ratio, (float, dict))
-    n_conv = len([m for m in model.backbone if isinstance(m, nn.Conv2d)])
-    # note that for the ratios, it affects the previous conv output and next
-    # conv input, i.e., conv0 - ratio0 - conv1 - ratio1-...
-    if isinstance(prune_ratio, dict):
-        prune_ratio=list(prune_ratio.values())
-        prune_ratio=prune_ratio[:-2]
-        assert len(prune_ratio) == n_conv - 1
-    else:  # convert float to list
-        prune_ratio = [prune_ratio] * (n_conv - 1)
-
-    # we prune the convs in the backbone with a uniform ratio
-    # we only apply pruning to the backbone features
-    all_convs = [m for m in model.backbone if isinstance(m, nn.Conv2d)]
-    all_bns = [m for m in model.backbone if isinstance(m, nn.BatchNorm2d)]
-    # apply pruning. we naively keep the first k channels
-    assert len(all_convs) == len(all_bns)
-    for i_ratio, p_ratio in enumerate(prune_ratio):
-        prev_conv = all_convs[i_ratio]
-        prev_bn = all_bns[i_ratio]
-        next_conv = all_convs[i_ratio + 1]
-        original_channels = prev_conv.out_channels  # same as next_conv.in_channels
-
-        n_keep = get_num_channels_to_keep(original_channels, p_ratio)
-
-        # prune the output of the previous conv and bn
-        prev_conv.weight.set_(prev_conv.weight.detach()[:n_keep])
-        prev_bn.weight.set_(prev_bn.weight.detach()[:n_keep])
-        prev_bn.bias.set_(prev_bn.bias.detach()[:n_keep])
-        prev_bn.running_mean.set_(prev_bn.running_mean.detach()[:n_keep])
-        prev_bn.running_var.set_(prev_bn.running_var.detach()[:n_keep])
-
-        # prune the input of the next conv (hint: just one line of code)
-        ##################### YOUR CODE STARTS HERE #####################
-        next_conv.weight.set_(next_conv.weight.detach()[:,:n_keep])
- #       next_conv.in_channels=n_keep
- #       prev_conv.out_channels=n_keep
-        ##################### YOUR CODE ENDS HERE #####################
-
-    return model
-
-
-# function to sort the channels from important to non-important
-def get_input_channel_importance(weight):
-    in_channels = weight.shape[1]
-    importances = []
-    # compute the importance for each input channel
-    for i_c in range(weight.shape[1]):
-        channel_weight = weight.detach()[:, i_c]
-        ##################### YOUR CODE STARTS HERE #####################
-        importance = torch.linalg.norm(channel_weight)
-        ##################### YOUR CODE ENDS HERE #####################
-        importances.append(importance.view(1))
-    return torch.cat(importances)
-
-@torch.no_grad()
-def apply_channel_sorting(model):
-    model = copy.deepcopy(model)  # do not modify the original model
-    # fetch all the conv and bn layers from the backbone
-    all_convs = [m for m in model.backbone if isinstance(m, nn.Conv2d)]
-    all_bns = [m for m in model.backbone if isinstance(m, nn.BatchNorm2d)]
-    # iterate through conv layers
-    for i_conv in range(len(all_convs) - 1):
-        # each channel sorting index, we need to apply it to:
-        # - the output dimension of the previous conv
-        # - the previous BN layer
-        # - the input dimension of the next conv (we compute importance here)
-        prev_conv = all_convs[i_conv]
-        prev_bn = all_bns[i_conv]
-        next_conv = all_convs[i_conv + 1]
-        # note that we always compute the importance according to input channels
-        importance = get_input_channel_importance(next_conv.weight)
-        # sorting from large to small
-        sort_idx = torch.argsort(importance, descending=True)
-
-        # apply to previous conv and its following bn
-        prev_conv.weight.copy_(torch.index_select(
-            prev_conv.weight.detach(), 0, sort_idx))
-        for tensor_name in ['weight', 'bias', 'running_mean', 'running_var']:
-            tensor_to_apply = getattr(prev_bn, tensor_name)
-            tensor_to_apply.copy_(
-                torch.index_select(tensor_to_apply.detach(), 0, sort_idx)
-            )
-
-        # apply to the next conv input (hint: one line of code)
-        ##################### YOUR CODE STARTS HERE #####################
-        next_conv.weight.copy_(torch.index_select(
-            next_conv.weight.detach(), 1, sort_idx))
-        ##################### YOUR CODE ENDS HERE #####################
-
-    return model
-
-def ChannelPrunner(model,channel_pruning_ratio):
-    sorted_model = apply_channel_sorting(model)
-    pruned_model = channel_prune(sorted_model, channel_pruning_ratio)
-    return pruned_model

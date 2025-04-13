@@ -1,6 +1,5 @@
 
 
-import copy
 from matplotlib import path
 import torch
 from torch.optim import *
@@ -9,9 +8,7 @@ from torchvision.datasets import *
 from torchvision.transforms import *
 
 from DataPreprocessing import get_dataloaders
-from PrunUtill import ChannelPrunner, apply_channel_sorting
 from ResNet import ResNet18
-from TrainingModules import evaluate
 from Utill import print_model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

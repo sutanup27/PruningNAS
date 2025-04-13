@@ -1,17 +1,14 @@
 import copy
-import math
 import random
 
 
-import os
 import torch
 from torch import nn
 from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
-import torchvision.models as models
-from DataPreprocessing import train_transform,test_transform,get_dataloaders
+from DataPreprocessing import get_dataloaders
 from ResNet import ResNet18
 from TrainingModules import evaluate
 from VGG import VGG
@@ -27,7 +24,7 @@ path='../dataset/cifar10'
 classes=10
 train_dataloader,test_dataloader=get_dataloaders(path,batch_size=64)
 
-select_model='resnet18'
+select_model='vgg'
 if select_model=='vgg':
     model=VGG(classes=classes)
 elif select_model=='resnet18':
@@ -46,7 +43,7 @@ optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 # lambda_lr = lambda epoch: math.sqrt(.1) ** (epoch // 7)
 # lambda_lr = lambda epoch: 0.1 ** (epoch // 5)
 # scheduler=LambdaLR(optimizer,lambda_lr)
-num_epochs=200
+num_epochs=20
 scheduler = CosineAnnealingLR(optimizer, num_epochs)
 # scheduler = CosineAnnealingLR(optimizer, T_max=50)
 
