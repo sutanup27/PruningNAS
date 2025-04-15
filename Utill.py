@@ -169,9 +169,9 @@ def recover_model(PATH,model):
 
 
 def print_model(model):
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            print(name, param.shape)
+    for name, param in model.named_modules():
+        if isinstance(param,nn.Conv2d) or isinstance(param,nn.Linear):
+            print(name, param.weight.shape)
 
 
 #   can directly leads to model size reduction and speed up.

@@ -27,7 +27,6 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
         return out
 
-
 class ResNet18(nn.Module):
     def __init__(self, num_classes=10):  # CIFAR-10 has 10 classes
         super(ResNet18, self).__init__()

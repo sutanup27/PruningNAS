@@ -165,70 +165,68 @@ def channel_prune_vgg(model,
     return model
 
 @torch.no_grad()
-def channel_prune_resnet18(model, prune_ratio: Union[dict, float]) :
-    """Apply channel pruning to each of the conv layer in the backbone
-    Note that for prune_ratio, we can either provide a floating-point number,
-    indicating that we use a uniform pruning rate for all layers, or a list of
-    numbers to indicate per-layer pruning rate.
-    """
-    # sanity check of provided prune_ratio
-    assert isinstance(prune_ratio, (dict, float))
-    n_conv = len([(name,layer) for name, layer in model.named_modules() if isinstance(layer, nn.Conv2d)])
+def channel_prune_resnet18(model, prune_ratios: Union[dict, float]):
+    def prune_block(block, prune_ratios,n_keep):
+        has_shortcut=len(block.shortcut)>0
+        if has_shortcut:
+            block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+
+        block.conv1.weight.set_(block.conv1.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel chang
+
+        original_channels=block.conv1.out_channels
+        n_keep = get_num_channels_to_keep(original_channels, prune_ratios[0])
+        block.conv1.weight.set_(block.conv1.weight.detach()[:n_keep])
+        block.bn1.weight.set_(block.bn1.weight.detach()[:n_keep])
+        block.bn1.bias.set_(block.bn1.bias.detach()[:n_keep])
+        block.bn1.running_mean.set_(block.bn1.running_mean.detach()[:n_keep])
+        block.bn1.running_var.set_(block.bn1.running_var.detach()[:n_keep])
+
+        block.conv2.weight.set_(block.conv2.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+
+        original_channels=block.conv2.out_channels
+        n_keep = get_num_channels_to_keep(original_channels, prune_ratios[1]) 
+        block.conv2.weight.set_(block.conv2.weight.detach()[:n_keep])
+        block.bn2.weight.set_(block.bn2.weight.detach()[:n_keep])
+        block.bn2.bias.set_(block.bn2.bias.detach()[:n_keep])
+        block.bn2.running_mean.set_(block.bn2.running_mean.detach()[:n_keep])
+        block.bn2.running_var.set_(block.bn2.running_var.detach()[:n_keep])
+        if has_shortcut:
+            block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:n_keep])
+            block.shortcut[1].weight.set_(block.shortcut[1].weight.detach()[:n_keep])
+            block.shortcut[1].bias.set_(block.shortcut[1].bias.detach()[:n_keep])
+            block.shortcut[1].running_mean.set_(block.bn2.running_mean.detach()[:n_keep])
+            block.shortcut[1].running_var.set_(block.bn2.running_var.detach()[:n_keep])
+
+        return n_keep #we will need n_keep to fix next conv' inchannels fixing
+
+    assert isinstance(prune_ratios, (float, dict))
+    n_conv = len([ name for (name, layer)in model.named_modules() if isinstance(layer,nn.Conv2d)])
     # note that for the ratios, it affects the previous conv output and next
     # conv input, i.e., conv0 - ratio0 - conv1 - ratio1-...
-    if isinstance(prune_ratio, dict):
-        assert len(prune_ratio) == n_conv - 1
+    if isinstance(prune_ratios, dict):
+        prune_ratios=list(prune_ratios.values())
+        assert len(prune_ratios) == n_conv - 3
     else:  # convert float to list
-        prune_ratio = [prune_ratio] * (n_conv - 1)
+        prune_ratios = [prune_ratios] * (n_conv - 3)
 
-    # we prune the convs in the backbone with a uniform ratio
-    model = copy.deepcopy(model)  # prevent overwrite
-    # we only apply pruning to the backbone features
-    all_convs = [(name, layer) for name, layer in model.named_modules() if isinstance(layer, nn.Conv2d)]
-    all_bns = [(name, layer) for name, layer in model.named_modules() if isinstance(layer, nn.BatchNorm2d)]
-    # apply pruning. we naively keep the first k channels
-    assert len(all_convs) == len(all_bns)
-    for i_ratio, p_ratio in enumerate(prune_ratio):
-        print(all_convs[i_ratio][0])
-        if "downsample" in all_convs[i_ratio][0]:
-          prev_conv = all_convs[i_ratio][1]
-          prev_bn = all_bns[i_ratio][1]
-          next_conv = all_convs[i_ratio + 1][1]
-          original_channels = prev_conv.out_channels  # same as next_conv.in_channels
-          n_keep = get_num_channels_to_keep(original_channels, p_ratio)
-          print(prev_conv.weight.shape)
-          # prune the output of the previous conv and bn
-          prev_conv.weight.set_(prev_conv.weight.detach()[:,:n_keep//2])
-          prev_conv.weight.set_(prev_conv.weight.detach()[:n_keep])
-
-          prev_bn.weight.set_(prev_bn.weight.detach()[:n_keep])
-          prev_bn.bias.set_(prev_bn.bias.detach()[:n_keep])
-          prev_bn.running_mean.set_(prev_bn.running_mean.detach()[:n_keep])
-          prev_bn.running_var.set_(prev_bn.running_var.detach()[:n_keep])
-          next_conv.weight.set_(next_conv.weight.detach()[:,:n_keep])
-        else:
-          prev_conv = all_convs[i_ratio][1]
-          prev_bn = all_bns[i_ratio][1]
-          next_conv = all_convs[i_ratio + 1][1]
-          original_channels = prev_conv.out_channels  # same as next_conv.in_channels
-          n_keep = get_num_channels_to_keep(original_channels, p_ratio)
-
-          # prune the output of the previous conv and bn
-          prev_conv.weight.set_(prev_conv.weight.detach()[:n_keep])
-          prev_bn.weight.set_(prev_bn.weight.detach()[:n_keep])
-          prev_bn.bias.set_(prev_bn.bias.detach()[:n_keep])
-          prev_bn.running_mean.set_(prev_bn.running_mean.detach()[:n_keep])
-          prev_bn.running_var.set_(prev_bn.running_var.detach()[:n_keep])
-          next_conv.weight.set_(next_conv.weight.detach()[:,:n_keep])
-    all_convs[n_conv-1].weight.set_(all_convs[n_conv-1].weight.detach()[:n_keep])
-    all_bns[n_conv-1].weight.set_(all_bns[n_conv-1].weight.detach()[:n_keep])
-    all_bns[n_conv-1].bias.set_(all_bns[n_conv-1].bias.detach()[:n_keep])
-    all_bns[n_conv-1].running_mean.set_(all_bns[n_conv-1].running_mean.detach()[:n_keep])
-    all_bns[n_conv-1].running_var.set_(all_bns[n_conv-1].running_var.detach()[:n_keep])
-    model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep])
-    model.fc.bias.set_(model.fc.bias.detach()[:n_keep])
+    original_channels=model.conv1.out_channels
+    n_keep = get_num_channels_to_keep(original_channels, prune_ratios[0])
+    model.conv1.weight.set_(model.conv1.weight.detach()[:n_keep])
+    model.bn1.weight.set_(model.bn1.weight.detach()[:n_keep])
+    model.bn1.bias.set_(model.bn1.bias.detach()[:n_keep])
+    model.bn1.running_mean.set_(model.bn1.running_mean.detach()[:n_keep])
+    model.bn1.running_var.set_(model.bn1.running_var.detach()[:n_keep])
+    i=1
+    for name, layer in model.named_children():
+        if isinstance(layer,nn.Sequential):
+            p_ratios=prune_ratios[i:i+2]
+            n_keep=prune_block(layer[0],p_ratios,n_keep)
+            p_ratios=prune_ratios[i+2:i+4]
+            n_keep=prune_block(layer[1],p_ratios,n_keep)
+            i=i+4
+    
+    model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
     return model
-
 
 def channel_prune(model, prune_ratio: Union[dict, float],model_type):
     if model_type=='Vgg-16':

@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from DataPreprocessing import get_dataloaders,train_transform,test_transform
 from Model_Evaluation import get_model_macs, get_model_size, get_model_sparsity
+from PrunUtillCP import channel_prune_resnet18
 from Utill import get_labels_preds, measure_latency, print_model
 from VGG import VGG
 from TrainingModules import evaluate  # Ensure you import your correct model architecture
@@ -25,11 +26,11 @@ GiB = 1024 * MiB
 path='../dataset/cifar10'
 # Initialize the model
 
-#model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='checkpoint/resnet18/resnet18_cifar_95.29999542236328.pth'
+model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.29999542236328.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 model.to(device)
+
 # Print out missing/unexpected keys for debugging
 
 train_dataloader,test_dataloader=get_dataloaders(path)

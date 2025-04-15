@@ -20,17 +20,18 @@ num_epochs=20
 }
 
 ### CP:
- sparsity_dict = {      
- 'backbone.conv0':0.70,
- 'backbone.conv1':0.80,
- 'backbone.conv2':0.80,
- 'backbone.conv3':0.7,
- 'backbone.conv4':0.70,
- 'backbone.conv5':0.80,
- 'backbone.conv6':0.80,
- 'backbone.conv7':0.80,
- 'fc2':0.8,
- }
+- sparsity_dict = {      
+'backbone.conv0':0.5,
+'backbone.conv1':0.6,
+'backbone.conv2':0.70,
+'backbone.conv3':0.7,
+'backbone.conv4':0.70,
+'backbone.conv5':0.80,
+'backbone.conv6':0.80,
+'backbone.conv7':0.80,
+'fc2':0.8,
+}
+
 
 ## Parameter configuration for Resnet-18:
 - num_epochs=200

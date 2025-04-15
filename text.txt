@@ -1,0 +1,14 @@
+Input: (3, 224, 224)
+│
+├── conv1: 64 filters, kernel_size=7x7, stride=2, padding=3 → (64, 112, 112)
+├── maxpool: 3x3, stride=2 → (64, 56, 56)
+│
+├── layer1: [BasicBlock × 2]         → (64, 56, 56)
+├── layer2: [BasicBlock × 2]         → (128, 28, 28)
+├── layer3: [BasicBlock × 2]         → (256, 14, 14)
+├── layer4: [BasicBlock × 2]         → (512, 7, 7)
+│
+├── avgpool: AdaptiveAvgPool2d(1x1)  → (512, 1, 1)
+├── fc: Linear(512 → 1000)           → (1000,)
+
+
