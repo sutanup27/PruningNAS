@@ -26,7 +26,7 @@ GiB = 1024 * MiB
 path='../dataset/cifar10'
 # Initialize the model
 
-model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.29999542236328.pth'
+model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.54999542236328.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 model.to(device)
@@ -50,12 +50,12 @@ metric,_ = evaluate(model, test_dataloader)
 print("accuracy:",metric)
 #######################################################################################
 ######################################## model metrics ################################
-macs =get_model_macs(model,input_tensor)
+macs =get_model_macs(model)
 sparsity =get_model_sparsity(model)
 model_size =get_model_size(model,count_nonzero_only=True)
 print('macs:',macs)
 print('sparsity:',sparsity)
-print(f'model size:{model_size/ MiB:.2f}MB')
+print(f'model size:{model_size:.2f}MB')
 #######################################################################################
 all_labels, all_preds,all_outputs,loss = get_labels_preds(model,test_dataloader,nn.CrossEntropyLoss())
 precision = precision_score(all_labels, all_preds, average='macro')

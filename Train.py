@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
 from DataPreprocessing import get_dataloaders
-from ResNet import ResNet18
+from ResNet import *
 from TrainingModules import evaluate
 from VGG import VGG
 from TrainingModules import Training
@@ -28,19 +28,30 @@ select_model='Resnet-18'
 if select_model=='Vgg-16':
     model=VGG(classes=classes)
 elif select_model=='Resnet-18':
-    model = ResNet18()
-    model.fc = torch.nn.Linear(model.fc.in_features, classes)  # num_classes is the number of output classes
+    model = ResNet18(classes=classes)
+elif select_model=='Resnet-34':
+    model = ResNet34(classes=classes)
+elif select_model=='Resnet-50':
+    model = ResNet50(classes=classes)
+elif select_model=='Resnet-101':
+    model = ResNet101(classes=classes)
+elif select_model=='Resnet-152':
+    model = ResNet152(classes=classes)
 else:
     print("Model does not exists")
     exit
 
+# ########load from path only for retraining #####
+# model_path='checkpoint/Resnet-34/Resnet-34_cifar_95.66999816894531.pth'
+# model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
+################################################
 model = model.to(device)
 
 
 criterion = nn.CrossEntropyLoss()
 optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 
-num_epochs=20
+num_epochs=200
 scheduler = CosineAnnealingLR(optimizer, num_epochs)
 # scheduler = CosineAnnealingLR(optimizer, T_max=50)
 
@@ -54,6 +65,6 @@ plot_accuracy(accs)
 plot_loss(losses,test_losses)
 
 torch.save(model, f'./checkpoint/{select_model}/{select_model}_cifar_{metric}.pth')
-
+torch.save(model.state_dict(), f'./checkpoint/{select_model}/{select_model}_cifar_{metric:0.2f}_state_dict.pth')
 
     

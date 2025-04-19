@@ -6,14 +6,12 @@ from torchprofile import profile_macs
 from torchvision.datasets import *
 from torchvision.transforms import *
 from torchprofile import profile_macs
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-Byte = 8
-KiB = 1024 * Byte
-MiB = 1024 * KiB
-GiB = 1024 * MiB
 
-def get_model_macs(model, inputs) -> int:
-    return profile_macs(model, inputs)
+def get_model_macs(model) -> int:
+    input_tensor=torch.randn(1, 3, 32, 32).to(device)
+    return profile_macs(model, input_tensor)
 
 
 def get_sparsity(tensor: torch.Tensor) -> float:
@@ -50,10 +48,14 @@ def get_num_parameters(model: nn.Module, count_nonzero_only=False) -> int:
 
 
 def get_model_size(model: nn.Module, data_width=32, count_nonzero_only=False) -> int:
+    Byte = 8
+    KiB = 1024 * Byte
+    MiB = 1024 * KiB
+    GiB = 1024 * MiB
     """
     calculate the model size in bits
     :param data_width: #bits per element
     :param count_nonzero_only: only count nonzero weights
     """
-    return get_num_parameters(model, count_nonzero_only) * data_width
+    return get_num_parameters(model, count_nonzero_only) * data_width/MiB
 

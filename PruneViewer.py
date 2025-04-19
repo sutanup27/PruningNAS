@@ -12,8 +12,9 @@ print(device)
 # Initialize the model
 path='../dataset/cifar10'
 select_model='Resnet-18'
+prune_type='CP'
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.29999542236328.pth'
+model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.54999542236328.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 model.to(device)
@@ -21,11 +22,11 @@ model.to(device)
 plot_weight_distribution(model)
 train_dataloader,test_dataloader=get_dataloaders(path )
 ############# calculate sparsities (optional) #############################################
-sparsities_path=f'./checkpoint/{select_model}/{select_model}_sparsities.pkl'
-accuracies_path=f'./checkpoint/{select_model}/{select_model}_accuracies.pkl'
+sparsities_path=f'./checkpoint/{select_model}/{prune_type}/{select_model}_sparsities_.pkl'
+accuracies_path=f'./checkpoint/{select_model}/{prune_type}/{select_model}_accuracies.pkl'
 
 sparsities, accuracies = sensitivity_scan(
-    model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0)
+    model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
 
 with open(sparsities_path, "wb") as f:
     pickle.dump(sparsities, f)

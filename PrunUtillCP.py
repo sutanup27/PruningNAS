@@ -6,6 +6,7 @@ from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -30,6 +31,15 @@ def get_input_channel_importance(weight):
         ##################### YOUR CODE ENDS HERE #####################
         importances.append(importance.view(1))
     return torch.cat(importances)
+
+
+def count_resnet_blocks(model):
+    return len(model.layer1)+len(model.layer2)+len(model.layer3)+len(model.layer4)
+
+def count_prunable_layers(model,model_type='Vgg-16'):
+    if model_type=='Vgg-16':
+        return len([m for m in model.backbone if isinstance(m, nn.Conv2d)])
+    
 
 @torch.no_grad()
 def apply_channel_sorting_on_vgg(model):
@@ -89,8 +99,8 @@ def apply_channel_sorting_on_resnet18(model):
         sort_idx = torch.argsort(importance, descending=True)
 
         # apply to previous conv and its following bn
-        prev_conv.weight.copy_(torch.index_select(
-            prev_conv.weight.detach(), 0, sort_idx))
+        prev_conv.weight.copy_(torch.index_select(prev_conv.weight.detach(), 0, sort_idx))
+
         for tensor_name in ['weight', 'bias', 'running_mean', 'running_var']:
             tensor_to_apply = getattr(prev_bn, tensor_name)
             tensor_to_apply.copy_(
@@ -165,16 +175,15 @@ def channel_prune_vgg(model,
     return model
 
 @torch.no_grad()
-def channel_prune_resnet18(model, prune_ratios: Union[dict, float]):
+def channel_prune_resnet18(model, prune_ratios: Union[dict, float]):    
     def prune_block(block, prune_ratios,n_keep):
-        has_shortcut=len(block.shortcut)>0
-        if has_shortcut:
+        if block.shortcut:
             block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
 
         block.conv1.weight.set_(block.conv1.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel chang
 
         original_channels=block.conv1.out_channels
-        n_keep = get_num_channels_to_keep(original_channels, prune_ratios[0])
+        n_keep = get_num_channels_to_keep(original_channels, prune_ratios)
         block.conv1.weight.set_(block.conv1.weight.detach()[:n_keep])
         block.bn1.weight.set_(block.bn1.weight.detach()[:n_keep])
         block.bn1.bias.set_(block.bn1.bias.detach()[:n_keep])
@@ -183,32 +192,29 @@ def channel_prune_resnet18(model, prune_ratios: Union[dict, float]):
 
         block.conv2.weight.set_(block.conv2.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
 
-        original_channels=block.conv2.out_channels
-        n_keep = get_num_channels_to_keep(original_channels, prune_ratios[1]) 
         block.conv2.weight.set_(block.conv2.weight.detach()[:n_keep])
         block.bn2.weight.set_(block.bn2.weight.detach()[:n_keep])
         block.bn2.bias.set_(block.bn2.bias.detach()[:n_keep])
         block.bn2.running_mean.set_(block.bn2.running_mean.detach()[:n_keep])
         block.bn2.running_var.set_(block.bn2.running_var.detach()[:n_keep])
-        if has_shortcut:
+        if block.shortcut:
             block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:n_keep])
             block.shortcut[1].weight.set_(block.shortcut[1].weight.detach()[:n_keep])
             block.shortcut[1].bias.set_(block.shortcut[1].bias.detach()[:n_keep])
-            block.shortcut[1].running_mean.set_(block.bn2.running_mean.detach()[:n_keep])
-            block.shortcut[1].running_var.set_(block.bn2.running_var.detach()[:n_keep])
-
+            block.shortcut[1].running_mean.set_(block.shortcut[1].running_mean.detach()[:n_keep])
+            block.shortcut[1].running_var.set_(block.shortcut[1].running_var.detach()[:n_keep])
         return n_keep #we will need n_keep to fix next conv' inchannels fixing
 
-    assert isinstance(prune_ratios, (float, dict))
-    n_conv = len([ name for (name, layer)in model.named_modules() if isinstance(layer,nn.Conv2d)])
+    assert isinstance(prune_ratios, (float, dict,list))
     # note that for the ratios, it affects the previous conv output and next
     # conv input, i.e., conv0 - ratio0 - conv1 - ratio1-...
     if isinstance(prune_ratios, dict):
         prune_ratios=list(prune_ratios.values())
-        assert len(prune_ratios) == n_conv - 3
-    else:  # convert float to list
-        prune_ratios = [prune_ratios] * (n_conv - 3)
-
+        assert len(prune_ratios) == count_resnet_blocks(model)+1
+    elif isinstance(prune_ratios, float):  # convert float to list
+        prune_ratios = [prune_ratios] * (count_resnet_blocks(model)+1)
+    else:
+        pass
     original_channels=model.conv1.out_channels
     n_keep = get_num_channels_to_keep(original_channels, prune_ratios[0])
     model.conv1.weight.set_(model.conv1.weight.detach()[:n_keep])
@@ -219,11 +225,11 @@ def channel_prune_resnet18(model, prune_ratios: Union[dict, float]):
     i=1
     for name, layer in model.named_children():
         if isinstance(layer,nn.Sequential):
-            p_ratios=prune_ratios[i:i+2]
+            p_ratios=prune_ratios[i]
             n_keep=prune_block(layer[0],p_ratios,n_keep)
-            p_ratios=prune_ratios[i+2:i+4]
+            p_ratios=prune_ratios[i+1]
             n_keep=prune_block(layer[1],p_ratios,n_keep)
-            i=i+4
+            i=i+2
     
     model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
     return model

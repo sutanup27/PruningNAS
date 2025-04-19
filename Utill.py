@@ -2,7 +2,6 @@ import copy
 import math
 from torch import nn
 import time
-from typing import List, Union
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
@@ -10,7 +9,8 @@ from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
-from tqdm.auto import tqdm
+from PrunUtillCP import ChannelPrunner
+from PrunUtillFGP import fine_grained_prune
 from TrainingModules import evaluate
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -34,50 +34,6 @@ def download_url(url, model_dir='.', overwrite=False):
         os.remove(os.path.join(model_dir, 'download.lock'))
         sys.stderr.write('Failed to download from url %s' % url + '\n' + str(e) + '\n')
         return None
-
-
-def magnitude_based_prune(tensor: torch.Tensor, sparsity : float) -> torch.Tensor:
-    """
-    magnitude-based pruning for single tensor
-    :param tensor: torch.(cuda.)Tensor, weight of conv/fc layer
-    :param sparsity: float, pruning sparsity
-        sparsity = #zeros / #elements = 1 - #nonzeros / #elements
-    :return:
-        torch.(cuda.)Tensor, mask for zeros
-    """
-    sparsity = min(max(0.0, sparsity), 1.0)
-    if sparsity == 1.0:
-        tensor.zero_()
-        return torch.zeros_like(tensor)
-    elif sparsity == 0.0:
-        return torch.ones_like(tensor)
-
-    num_elements = tensor.numel()
-
-    ##################### YOUR CODE STARTS HERE #####################
-    # Step 1: calculate the #zeros (please use round())
-    num_zeros = round(num_elements*sparsity)
-    # Step 2: calculate the importance of weight
-    importance = torch.abs(tensor)
-    # Step 3: calculate the pruning threshold
-    threshold,ind=  torch.kthvalue(torch.abs(tensor.view(-1)), num_zeros)
-    # Step 4: calculate the pruning mask
-    # Step 4: get binary mask (1 for nonzeros, 0 for zeros)
-    mask = importance.gt(threshold)
-    ##################### YOUR CODE ENDS HERE #######################
-
-    # Step 5: apply mask to prune the tensor
-    tensor.mul_(mask)
-
-    return mask
-
-
-def fine_grained_prune(tensor: torch.Tensor, sparsity : float, prune_type="magnitude_based"):
-    if prune_type=="magnitude_based" :
-        return magnitude_based_prune(tensor,sparsity)
-    else:
-        print("Wrong prune type is passed")
-        return tensor
         
 
     
@@ -100,13 +56,39 @@ def get_labels_preds(model, dataloader,criterion):
 
   return all_labels, all_preds, all_outputs, loss
 
+def get_prunable_weights(model,select_model):
+    prunable_weights=[]
+    print(select_model[:-3])
+    if select_model[:-3]=='Resnet':
+        prunable_weights.append(('conv1',model.conv1))
+        for name, layer in model.named_children():
+            if isinstance(layer,nn.Sequential):
+                for sub_name, sub_layer in layer.named_children():
+                    prunable_weights.append((name+'.'+sub_name, sub_layer))
+        return prunable_weights
+    elif select_model=='Vgg-16':
+        for (name, param) in model.named_modules():
+            if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear):
+                prunable_weights.append((name, param))
+    else:
+        return prunable_weights
+
+
+
 @torch.no_grad()
-def sensitivity_scan(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=1.0, verbose=True):
+def  sensitivity_scan(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=1.0, verbose=True,prune_type='FGP',select_model='Vgg-16'):
+    if prune_type=='CP':
+        sensitivity_scan_CP(model, dataloader, scan_step, scan_start, scan_end, verbose,select_model)
+    else:
+        sensitivity_scan_FGP(model, dataloader, scan_step, scan_start, scan_end, verbose)
+
+
+def sensitivity_scan_FGP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=1.0, verbose=True):
     sparsities = np.arange(start=scan_start, stop=scan_end, step=scan_step)
     accuracies = []
-    named_conv_weights = [(name, param) for (name, param) \
+    prunable_weights = [(name, param) for (name, param) \
                           in model.named_modules() if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear)]
-    for i_layer, (name, param) in enumerate(named_conv_weights):
+    for i_layer, (name, param) in enumerate(prunable_weights):
         param_clone = param.weight.detach().clone()
         accuracy = []
         for sparsity in sparsities:
@@ -121,6 +103,27 @@ def sensitivity_scan(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=
             print(f'\r    sparsity=[{",".join(["{:.2f}".format(x) for x in sparsities])}]: accuracy=[{", ".join(["{:.2f}%".format(x) for x in accuracy])}]', end='')
         accuracies.append(accuracy)
     return sparsities, accuracies
+
+def sensitivity_scan_CP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=1.0, verbose=True,select_model='Vgg-16'):
+    sparsities = np.arange(start=scan_start, stop=scan_end, step=scan_step)
+    accuracies = []
+    prunable_weights=get_prunable_weights(model,select_model)
+    for i_layer, (name, param) in enumerate(prunable_weights):
+        accuracy = []
+        sparsity_dict=[0.0]*len(prunable_weights)
+        for sparsity in sparsities:
+            sparsity_dict[i_layer]=float(sparsity)
+            pruned_model=ChannelPrunner(model, sparsity_dict,select_model)
+            acc,_ = evaluate(pruned_model, dataloader, verbose=False)
+            if verbose:
+                print(f'\r    sparsity={sparsity:.2f}: accuracy={acc:.2f}%', end='')
+            # restore
+            accuracy.append(acc)
+        if verbose:
+            print(f'\r    sparsity=[{",".join(["{:.2f}".format(x) for x in sparsities])}]: accuracy=[{", ".join(["{:.2f}%".format(x) for x in accuracy])}]', end='')
+        accuracies.append(accuracy)
+    return sparsities, accuracies
+
 
 
 
@@ -169,9 +172,8 @@ def recover_model(PATH,model):
 
 
 def print_model(model):
-    for name, param in model.named_modules():
-        if isinstance(param,nn.Conv2d) or isinstance(param,nn.Linear):
-            print(name, param.weight.shape)
+    for name, param in model.named_parameters():
+            print(name, param.shape)
 
 
 #   can directly leads to model size reduction and speed up.
@@ -192,10 +194,4 @@ def measure_latency(main_model,dummy_input, n_warmup=20, n_test=100, d='cpu'):
     t2 = time.time()
     return (t2 - t1) / n_test  # average latency
 
-def get_num_channels_to_keep(channels: int, prune_ratio: float) -> int:
-    """A function to calculate the number of layers to PRESERVE after pruning
-    Note that preserve_rate = 1. - prune_ratio
-    """
-    ##################### YOUR CODE STARTS HERE #####################
-    return round(channels*(1-prune_ratio))
-    ##################### YOUR CODE ENDS HERE #####################
+

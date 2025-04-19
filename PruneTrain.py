@@ -22,32 +22,22 @@ path='../dataset/cifar10'
 select_model='Resnet-18'
 pruning_type='CP'
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.29999542236328.pth'
+model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.54999542236328.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 
 model.to(device)
 
-
-
 sparsity_dict = {      #for F
 'conv1':0.85,
-'layer1.0.conv1':0.90,
-'layer1.0.conv2':0.90,
+'layer1.0.':0.90,
 'layer1.1.conv1':0.90,
-'layer1.1.conv2':0.90,
 'layer2.0.conv1':0.75,
-'layer2.0.conv2':0.90,
 'layer2.1.conv1':0.80,
-'layer2.1.conv2':0.70,
 'layer3.0.conv1':0.65,
-'layer3.0.conv2':0.90,
 'layer3.1.conv1':0.80,
-'layer3.1.conv2':0.80,
 'layer4.0.conv1':0.90,
-'layer4.0.conv2':0.95,
 'layer4.1.conv1':0.95,
-'layer4.1.conv2':0.95,
 }
 
 # sparsity_dict = {      
@@ -79,13 +69,12 @@ else:
 print_model(pruned_model)
 print(f'The sparsity of each layer becomes')
 for name, param in pruned_model.named_parameters():
-    if name in sparsity_dict:
-        print(f'  {name}: {get_sparsity(param):.2f}')
+    print(f'  {name}: {get_sparsity(param):.2f}')
 
 dense_model_size = get_model_size(model, count_nonzero_only=True)
 sparse_model_size = get_model_size(pruned_model, count_nonzero_only=True)
 
-print(f"Sparse model has size={sparse_model_size / MiB:.2f} MiB = {sparse_model_size / dense_model_size * 100:.2f}% of dense model size")
+print(f"Sparse model has size={sparse_model_size:.2f} MiB = {sparse_model_size / dense_model_size * 100:.2f}% of dense model size")
 sparse_model_accuracy,_ = evaluate(pruned_model, test_dataloader)
 print(f"Sparse model has accuracy={sparse_model_accuracy:.2f}% before fintuning")
 
