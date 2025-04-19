@@ -9,7 +9,7 @@ from torch import nn
 from Utill import print_model
 from VGG import VGG
 
-model=ResNet18(classes=10)
+model=VGG(classes=10)
 # all_convs = [(name, layer) for name, layer in model.named_modules() if isinstance(layer, nn.Conv2d)]
 # print(all_convs)
 
@@ -51,14 +51,13 @@ print(get_model_macs(model))
 sparsity =get_model_sparsity(model)
 model_size =get_model_size(model,count_nonzero_only=True)
 print(sparsity)
-model=channel_prune(model,[0.0, 0.1, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0],'Resnet-18')
+model=channel_prune(model,0.7,'Vgg-16')
 print(model_size)
 print_model(model)
 
 input_tensor=torch.randn(1, 3, 32, 32).to('cuda')
 output = model(input_tensor)  # Ensure input_tensor is properly formatted
 print(output)
-print(len(model.layer1))
 
 # for name, layer in model.named_children():
 #     if isinstance(layer,nn.Sequential):

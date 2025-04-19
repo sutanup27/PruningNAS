@@ -126,34 +126,36 @@ def apply_channel_sorting(model,model_type):
 
 @torch.no_grad()
 def channel_prune_vgg(model,
-                  prune_ratio: Union[dict, float]) :
+                  prune_ratio: Union[float, dict,list]) :
     """Apply channel pruning to each of the conv layer in the backbone
     Note that for prune_ratio, we can either provide a floating-point number,
     indicating that we use a uniform pruning rate for all layers, or a list of
     numbers to indicate per-layer pruning rate.
     """
     # sanity check of provided prune_ratio
-    assert isinstance(prune_ratio, (float, dict))
+    assert isinstance(prune_ratio, (float, dict,list))
     n_conv = len([m for m in model.backbone if isinstance(m, nn.Conv2d)])
     # note that for the ratios, it affects the previous conv output and next
     # conv input, i.e., conv0 - ratio0 - conv1 - ratio1-...
+
     if isinstance(prune_ratio, dict):
         prune_ratio=list(prune_ratio.values())
-        prune_ratio=prune_ratio[:-2]
-        assert len(prune_ratio) == n_conv - 1
-    else:  # convert float to list
-        prune_ratio = [prune_ratio] * (n_conv - 1)
-
+        assert len(prune_ratio) == n_conv 
+    elif isinstance(prune_ratio, float):  # convert float to list
+        prune_ratio = [prune_ratio] * (n_conv )
+    else:
+        assert len(prune_ratio) == n_conv 
     # we prune the convs in the backbone with a uniform ratio
     # we only apply pruning to the backbone features
-    all_convs = [m for m in model.backbone if isinstance(m, nn.Conv2d)]
+    all_params = [m for m in model.backbone if isinstance(m, nn.Conv2d)]
     all_bns = [m for m in model.backbone if isinstance(m, nn.BatchNorm2d)]
     # apply pruning. we naively keep the first k channels
-    assert len(all_convs) == len(all_bns)
+    assert len(all_params) == len(all_bns)
     for i_ratio, p_ratio in enumerate(prune_ratio):
-        prev_conv = all_convs[i_ratio]
+        prev_conv = all_params[i_ratio]
         prev_bn = all_bns[i_ratio]
-        next_conv = all_convs[i_ratio + 1]
+        if i_ratio!=n_conv-1:
+            next_conv = all_params[i_ratio + 1]
         original_channels = prev_conv.out_channels  # same as next_conv.in_channels
 
         n_keep = get_num_channels_to_keep(original_channels, p_ratio)
@@ -164,18 +166,13 @@ def channel_prune_vgg(model,
         prev_bn.bias.set_(prev_bn.bias.detach()[:n_keep])
         prev_bn.running_mean.set_(prev_bn.running_mean.detach()[:n_keep])
         prev_bn.running_var.set_(prev_bn.running_var.detach()[:n_keep])
-
-        # prune the input of the next conv (hint: just one line of code)
-        ##################### YOUR CODE STARTS HERE #####################
-        next_conv.weight.set_(next_conv.weight.detach()[:,:n_keep])
- #       next_conv.in_channels=n_keep
- #       prev_conv.out_channels=n_keep
-        ##################### YOUR CODE ENDS HERE #####################
-
+        if i_ratio!=n_conv-1:
+            next_conv.weight.set_(next_conv.weight.detach()[:,:n_keep])
+    model.fc2.weight.set_(model.fc2.weight.detach()[:,:n_keep])
     return model
 
 @torch.no_grad()
-def channel_prune_resnet18(model, prune_ratios: Union[dict, float]):    
+def channel_prune_resnet18(model, prune_ratios: Union[float, dict,list]):    
     def prune_block(block, prune_ratios,n_keep):
         if block.shortcut:
             block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change

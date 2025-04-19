@@ -58,29 +58,28 @@ def get_labels_preds(model, dataloader,criterion):
 
 def get_prunable_weights(model,select_model):
     prunable_weights=[]
-    print(select_model[:-3])
     if select_model[:-3]=='Resnet':
         prunable_weights.append(('conv1',model.conv1))
         for name, layer in model.named_children():
             if isinstance(layer,nn.Sequential):
                 for sub_name, sub_layer in layer.named_children():
                     prunable_weights.append((name+'.'+sub_name, sub_layer))
-        return prunable_weights
     elif select_model=='Vgg-16':
         for (name, param) in model.named_modules():
-            if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear):
+            if isinstance(param, nn.Conv2d):
                 prunable_weights.append((name, param))
     else:
-        return prunable_weights
+        pass
+    return prunable_weights
 
 
 
 @torch.no_grad()
 def  sensitivity_scan(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=1.0, verbose=True,prune_type='FGP',select_model='Vgg-16'):
     if prune_type=='CP':
-        sensitivity_scan_CP(model, dataloader, scan_step, scan_start, scan_end, verbose,select_model)
+        return sensitivity_scan_CP(model, dataloader, scan_step, scan_start, scan_end, verbose,select_model)
     else:
-        sensitivity_scan_FGP(model, dataloader, scan_step, scan_start, scan_end, verbose)
+        return sensitivity_scan_FGP(model, dataloader, scan_step, scan_start, scan_end, verbose)
 
 
 def sensitivity_scan_FGP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=1.0, verbose=True):

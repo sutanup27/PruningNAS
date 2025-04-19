@@ -11,10 +11,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 # Initialize the model
 path='../dataset/cifar10'
-select_model='Resnet-18'
+select_model='Vgg-16'
 prune_type='CP'
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.54999542236328.pth'
+model_path='checkpoint/Vgg-16/Vgg-16_cifar_93.0199966430664.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 model.to(device)
@@ -22,7 +22,7 @@ model.to(device)
 plot_weight_distribution(model)
 train_dataloader,test_dataloader=get_dataloaders(path )
 ############# calculate sparsities (optional) #############################################
-sparsities_path=f'./checkpoint/{select_model}/{prune_type}/{select_model}_sparsities_.pkl'
+sparsities_path=f'./checkpoint/{select_model}/{prune_type}/{select_model}_sparsities.pkl'
 accuracies_path=f'./checkpoint/{select_model}/{prune_type}/{select_model}_accuracies.pkl'
 
 sparsities, accuracies = sensitivity_scan(
@@ -41,5 +41,5 @@ with open(sparsities_path, "rb") as f:
 with open(accuracies_path, "rb") as f:
     accuracies = pickle.load(f)
 dense_model_accuracy,_=evaluate(model,test_dataloader)
-
+print(accuracies)
 plot_sensitivity_scan(model, sparsities, accuracies, dense_model_accuracy)
