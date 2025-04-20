@@ -19,10 +19,10 @@ MiB = 1024 * KiB
 GiB = 1024 * MiB
 # Initialize the model
 path='../dataset/cifar10'
-select_model='Resnet-18'
-pruning_type='CP'
+select_model='Resnet-34'
+pruning_type='FGP'
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='checkpoint/Resnet-18/Resnet-18_cifar_95.54999542236328.pth'
+model_path='checkpoint/Resnet-34/Resnet-34_cifar_95.69000244140625.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
 
@@ -40,17 +40,44 @@ model.to(device)
 # 'layer4.1.conv1':0.95,
 # }
 
-sparsity_dict = {      #for F
-'conv1':0.3,
-'layer1.0.conv1':0.3,
-'layer1.1.conv1':0.2,
-'layer2.0.conv1':0.3,
-'layer2.1.conv1':0.3,
-'layer3.0.conv1':0.4,
-'layer3.1.conv1':0.3,
-'layer4.0.conv1':0.7,
-'layer4.1.conv1':0.8,
-}
+sparsity_dict = sparsity_dict ={ 
+'conv1':0.80,
+'layer1.0.conv1':0.90,
+'layer1.0.conv2':0.90,
+'layer1.1.conv1':0.90,
+'layer1.1.conv2':0.90,
+'layer1.2.conv1':0.90,
+'layer1.2.conv2':0.90,
+'layer2.0.conv1':0.90,
+'layer2.0.conv2':0.80,
+'layer2.0.shortcut.0':0.80,
+'layer2.1.conv1':0.90,
+'layer2.1.conv2':0.90,
+'layer2.2.conv1':0.90,
+'layer2.2.conv2':0.90,
+'layer2.3.conv1':0.90,
+'layer2.3.conv2':0.90,
+'layer3.0.conv1':0.90,
+'layer3.0.conv2':0.80,
+'layer3.0.shortcut.0':0.80,
+'layer3.1.conv1':0.90,
+'layer3.1.conv2':0.90,
+'layer3.2.conv1':0.90,
+'layer3.2.conv2':0.90,
+'layer3.3.conv1':0.90,
+'layer3.3.conv2':0.90,
+'layer3.4.conv1':0.90,
+'layer3.4.conv2':0.90,
+'layer3.5.conv1':0.90,
+'layer3.5.conv2':0.90,
+'layer4.0.conv1':0.90,
+'layer4.0.conv2':0.90,
+'layer4.0.shortcut.0':0.90,
+'layer4.1.conv1':0.90,
+'layer4.1.conv2':0.90,
+'layer4.2.conv1':0.90,
+'layer4.2.conv2':0.90,
+'fc':0.90,}
 
 train_dataloader,test_dataloader=get_dataloaders(path, batch_size=64 ) # Basemodel
 dense_model_accuracy=evaluate(model,test_dataloader)

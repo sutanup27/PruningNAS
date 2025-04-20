@@ -18,9 +18,14 @@ for name, layer in model.named_parameters():
     print(f"{name}")
 
     
-# for name, param in model.named_modules():
-#     if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
-#          print(f'\'{name}\':0.90,')
+for name, layer in model.named_children():
+    if isinstance(layer,nn.Sequential):
+        for sub_name, sub_layer in layer.named_children():
+            print(f'\'{name}.{sub_name}\':0.90,')
+
+for name, param in model.named_modules():
+    if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
+         print(f'\'{name}\':0.90,')
     
 # accuracies_path='checkpoint/Resnet-18/Resnet-18_accuracies.pkl'
 # with open(accuracies_path, "rb") as f:
@@ -66,4 +71,4 @@ for name, layer in model.named_children():
             print(i,l)
             i=i+1
 
-accumulate_plot_figures('checkpoint/Resnet-34/FGP/param_plot')
+accumulate_plot_figures('checkpoint/Resnet-34/CP/sensitivity_curves')

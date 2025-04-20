@@ -71,13 +71,85 @@ epoch=20
 
 ### CP
 - sparsity_dict = {      #for F
-'conv1':0.85,
-'layer1.0.conv1':0.90,
-'layer1.1.conv1':0.90,
-'layer2.0.conv1':0.75,
-'layer2.1.conv1':0.80,
-'layer3.0.conv1':0.65,
-'layer3.1.conv1':0.80,
-'layer4.0.conv1':0.90,
-'layer4.1.conv1':0.95,
+'conv1':0.3,
+'layer1.0.conv1':0.3,
+'layer1.1.conv1':0.2,
+'layer2.0.conv1':0.3,
+'layer2.1.conv1':0.3,
+'layer3.0.conv1':0.4,
+'layer3.1.conv1':0.3,
+'layer4.0.conv1':0.7,
+'layer4.1.conv1':0.8,
 }
+
+
+## Parameter configuration for Resnet-34:
+- num_epochs=200
+- optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
+- scheduler = CosineAnnealingLR(optimizer, num_epochs)
+
+### FGP:
+epoch=20
+- optimizer = SGD( model.parameters(), lr=0.001,  momentum=0.9,  weight_decay=5e-4,) 
+<!-- optimizer = SGD( model.parameters(), lr=0.0001,  momentum=0.9,  weight_decay=5e-4,)  -->
+- scheduler = CosineAnnealingLR(optimizer, num_epochs)
+
+- sparsity_dict ={ 
+'conv1':0.90,
+'layer1.0.conv1':0.90,
+'layer1.0.conv2':0.90,
+'layer1.1.conv1':0.90,
+'layer1.1.conv2':0.90,
+'layer1.2.conv1':0.90,
+'layer1.2.conv2':0.90,
+'layer2.0.conv1':0.90,
+'layer2.0.conv2':0.90,
+'layer2.0.shortcut.0':0.90,
+'layer2.1.conv1':0.90,
+'layer2.1.conv2':0.90,
+'layer2.2.conv1':0.90,
+'layer2.2.conv2':0.90,
+'layer2.3.conv1':0.90,
+'layer2.3.conv2':0.90,
+'layer3.0.conv1':0.90,
+'layer3.0.conv2':0.90,
+'layer3.0.shortcut.0':0.90,
+'layer3.1.conv1':0.90,
+'layer3.1.conv2':0.90,
+'layer3.2.conv1':0.90,
+'layer3.2.conv2':0.90,
+'layer3.3.conv1':0.90,
+'layer3.3.conv2':0.90,
+'layer3.4.conv1':0.90,
+'layer3.4.conv2':0.90,
+'layer3.5.conv1':0.90,
+'layer3.5.conv2':0.90,
+'layer4.0.conv1':0.90,
+'layer4.0.conv2':0.90,
+'layer4.0.shortcut.0':0.90,
+'layer4.1.conv1':0.90,
+'layer4.1.conv2':0.90,
+'layer4.2.conv1':0.90,
+'layer4.2.conv2':0.90,
+'fc':0.90,}
+
+
+
+### CP
+- sparsity_dict = {
+'layer1.0':0.90,
+'layer1.1':0.90,
+'layer1.2':0.90,
+'layer2.0':0.90,
+'layer2.1':0.90,
+'layer2.2':0.90,
+'layer2.3':0.90,
+'layer3.0':0.90,
+'layer3.1':0.90,
+'layer3.2':0.90,
+'layer3.3':0.90,
+'layer3.4':0.90,
+'layer3.5':0.90,
+'layer4.0':0.90,
+'layer4.1':0.90,
+'layer4.2':0.90,}
