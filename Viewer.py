@@ -1,6 +1,7 @@
 import math
 import os
 from matplotlib import pyplot as plt
+from pathlib import Path
 from torch import nn
 import torch
 from torch.optim import *
@@ -8,6 +9,7 @@ from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
 from DataPreprocessing import get_datasets,test_transform,train_transform
+import matplotlib.image as mpimg
 
 
 def plot_accuracy(accs,titel_append='',save_path=None,):
@@ -106,21 +108,33 @@ def plot_weight_distribution_depricated(model, bins=256, count_nonzero_only=Fals
     plt.close()
 
 
-# def accumulate_plot_figures(save_path):
-#     # More precise control over layout
-#     for name in names:
-#         param_cpu = get_params(model,name).cpu()
-#         if count_nonzero_only:
-#             param_cpu = param_cpu[param_cpu != 0].view(-1)
-#             plt.hist(param_cpu, bins=bins, density=True,
-#                     color = 'blue', alpha = 0.5)
-#         else:
-#             plt.hist(param_cpu, bins=bins, density=True,
-#                     color = 'blue', alpha = 0.5)
-#         plt.xlabel(name)
-#         plt.ylabel('density')
-#         if save_path is None:
-#             plt.show()
-#         else:
-#             plt.savefig(save_path+name+'.png') 
-#         plt.close()
+def accumulate_plot_figures(save_path):
+    path=Path(save_path)
+    if path.exists():
+        print("Folder exists!")
+    else:
+        print("Folder not found.")
+        exit()
+    # More precise control over layout
+    files=[]
+    for file in path.iterdir():
+        files.append(file)
+
+    col= round(4*math.sqrt(len(files)/12.0))
+    row= round(len(files)/col)
+    if col*row<len(files):
+        col=col+1
+    fig, axes = plt.subplots(row, col, figsize=(col * 30, row * 20))
+    i=0
+    for r in range(row):
+        for c in range(col):
+            if i>=len(files):
+                break
+            img = mpimg.imread(files[i])
+            axes[r, c].imshow(img)
+            axes[r, c].axis('off')
+            i=i+1
+    plt.tight_layout(pad=-0.00)
+    plt.show()
+    # plt.savefig(save_path)
+    plt.close()

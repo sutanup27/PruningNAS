@@ -8,6 +8,7 @@ from torch import nn
 
 from Utill import print_model
 from VGG import VGG
+from Viewer import accumulate_plot_figures
 
 model=ResNet34(classes=10)
 # all_convs = [(name, layer) for name, layer in model.named_modules() if isinstance(layer, nn.Conv2d)]
@@ -64,3 +65,5 @@ for name, layer in model.named_children():
         for l in layer:
             print(i,l)
             i=i+1
+
+accumulate_plot_figures('checkpoint/Resnet-34/FGP/param_plot')
