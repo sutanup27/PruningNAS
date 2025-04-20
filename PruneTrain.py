@@ -40,7 +40,7 @@ model.to(device)
 # 'layer4.1.conv1':0.95,
 # }
 
-sparsity_dict = sparsity_dict ={ 
+sparsity_dict ={ 
 'conv1':0.80,
 'layer1.0.conv1':0.90,
 'layer1.0.conv2':0.90,
