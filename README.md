@@ -21,15 +21,14 @@ num_epochs=20
 
 ### CP:
 - sparsity_dict = {      
-'backbone.conv0':0.5,
-'backbone.conv1':0.6,
-'backbone.conv2':0.70,
-'backbone.conv3':0.7,
-'backbone.conv4':0.70,
-'backbone.conv5':0.80,
-'backbone.conv6':0.80,
+'backbone.conv0':0.6,
+'backbone.conv1':0.4,
+'backbone.conv2':0.4,
+'backbone.conv3':0.4,
+'backbone.conv4':0.4,
+'backbone.conv5':0.3,
+'backbone.conv6':0.70,
 'backbone.conv7':0.80,
-'fc2':0.8,
 }
 
 

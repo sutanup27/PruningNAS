@@ -58,7 +58,7 @@ def get_labels_preds(model, dataloader,criterion):
 
 def get_prunable_weights(model,select_model):
     prunable_weights=[]
-    if select_model[:-3]=='Resnet':
+    if select_model[:6]=='Resnet':
         prunable_weights.append(('conv1',model.conv1))
         for name, layer in model.named_children():
             if isinstance(layer,nn.Sequential):
@@ -69,7 +69,8 @@ def get_prunable_weights(model,select_model):
             if isinstance(param, nn.Conv2d):
                 prunable_weights.append((name, param))
     else:
-        pass
+        print('model_type doesn\'t exists')
+        exit(0)
     return prunable_weights
 
 
@@ -85,6 +86,7 @@ def  sensitivity_scan(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end
 def sensitivity_scan_FGP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=1.0, verbose=True):
     sparsities = np.arange(start=scan_start, stop=scan_end, step=scan_step)
     accuracies = []
+    names=[]
     prunable_weights = [(name, param) for (name, param) \
                           in model.named_modules() if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear)]
     for i_layer, (name, param) in enumerate(prunable_weights):
@@ -101,11 +103,13 @@ def sensitivity_scan_FGP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_
         if verbose:
             print(f'\r    sparsity=[{",".join(["{:.2f}".format(x) for x in sparsities])}]: accuracy=[{", ".join(["{:.2f}%".format(x) for x in accuracy])}]', end='')
         accuracies.append(accuracy)
-    return sparsities, accuracies
+        names.append(name)
+    return sparsities, accuracies, names
 
 def sensitivity_scan_CP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_end=1.0, verbose=True,select_model='Vgg-16'):
     sparsities = np.arange(start=scan_start, stop=scan_end, step=scan_step)
     accuracies = []
+    names=[]
     prunable_weights=get_prunable_weights(model,select_model)
     for i_layer, (name, param) in enumerate(prunable_weights):
         accuracy = []
@@ -121,49 +125,76 @@ def sensitivity_scan_CP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_e
         if verbose:
             print(f'\r    sparsity=[{",".join(["{:.2f}".format(x) for x in sparsities])}]: accuracy=[{", ".join(["{:.2f}%".format(x) for x in accuracy])}]', end='')
         accuracies.append(accuracy)
-    return sparsities, accuracies
+        names.append(name)
+    return sparsities, accuracies ,names
 
 
+def plot_sensitivity_scan( names, sparsities, accuracies, dense_model_accuracy,save_path=None):
+    lower_bound_accuracy = 100 - (100 - dense_model_accuracy) * 1.5
+    # More precise control over layout
+    plot_index=0
+    for name in names:
+        plt.plot(sparsities, accuracies[plot_index],  color='b')  # Plot first curve in blue
+        plt.plot(sparsities, [lower_bound_accuracy] * len(sparsities), color='orange')  # Plot first curve in blue
+        plt.xticks(np.arange(start=0.1, stop=1.0, step=0.1))
+        plt.ylim(80, 100)
+        plt.title(name)
+        plt.xlabel('sparsity')
+        plt.ylabel('top-1 accuracy')
+        plt.grid(True)
+        plot_index=plot_index+1
+        plt.legend([
+            'accuracy after pruning',
+            f'{lower_bound_accuracy / dense_model_accuracy * 100:.0f}% of dense model accuracy'
+        ])
+        # fig.tight_layout(rect=[0, 0, 1, 0.95])  # Leaves room at top for suptitle
+        if save_path is None:
+            plt.show()
+        else:
+            plt.savefig(save_path+'.'+name+'.png') 
+        plt.close()
 
-
-def plot_sensitivity_scan(model, sparsities, accuracies, dense_model_accuracy,save_path=None):
-    layer_count=0
-    for name, param in model.named_modules():
-        if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear):
-            layer_count=   layer_count+1
-    col= round(3*math.sqrt(layer_count/12.0))
-    row= round(layer_count/col)
-    if col*row<layer_count:
-        col=col+1
+def plot_sensitivity_scan_deprecated(model, names, sparsities, accuracies, dense_model_accuracy,save_path=None):
+    layer_count=len(names)
+    cols= round(3*math.sqrt(layer_count/12.0))
+    rows= round(layer_count/cols)
+    if cols*rows<layer_count:
+        cols=cols+1
+    fig = plt.figure(figsize=(20*rows, 20*cols),dpi=150)  # Big enough to hold all
 
     lower_bound_accuracy = 100 - (100 - dense_model_accuracy) * 1.5
-    fig, axes = plt.subplots(col, row, figsize=(50,50),constrained_layout=True)
-    axes = axes.ravel()
-    plot_index = 0
-    for name, param in model.named_modules():
-        if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear):
-            ax = axes[plot_index]
+    # More precise control over layout
+    gs = fig.add_gridspec(rows, cols, wspace=0.4, hspace=1)
+    plot_index=0
+    for i in range(rows):
+        for j in range(cols):
+            if plot_index>=layer_count:
+                break
+            ax = fig.add_subplot(gs[i, j])
             curve = ax.plot(sparsities, accuracies[plot_index])
             line = ax.plot(sparsities, [lower_bound_accuracy] * len(sparsities))
+            ax.set_xlabel("X")
+            ax.set_ylabel("Y")
             ax.set_xticks(np.arange(start=0.1, stop=1.0, step=0.1))
             ax.set_ylim(80, 100)
-            ax.set_title(name)
+            ax.set_title(names[plot_index])
             ax.set_xlabel('sparsity')
             ax.set_ylabel('top-1 accuracy')
-            ax.legend([
-                'accuracy after pruning',
-                f'{lower_bound_accuracy / dense_model_accuracy * 100:.0f}% of dense model accuracy'
-            ])
             ax.grid(axis='x')
-            plot_index += 1
+            plot_index=plot_index+1
     fig.suptitle('Sensitivity Curves: Validation Accuracy vs. Pruning Sparsity')
-    #fig.tight_layout()
-    fig.subplots_adjust(top=0.9)
+    fig.legend([
+        'accuracy after pruning',
+        f'{lower_bound_accuracy / dense_model_accuracy * 100:.0f}% of dense model accuracy'
+    ])
+    fig.tight_layout(rect=[0, 0, 1, 0.95])  # Leaves room at top for suptitle
+    # fig.subplots_adjust(top=0.925,left=0.05, bottom=0.05)
     if save_path is None:
         plt.show()
     else:
-        plt.savefig("sensitivity_scan.png") 
+        plt.savefig(save_path) 
     plt.close()
+
 
 def recover_model(PATH,model):
         cp = torch.load(download_url(PATH), map_location="cpu")

@@ -2,6 +2,7 @@ import math
 import os
 from matplotlib import pyplot as plt
 from torch import nn
+import torch
 from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
@@ -45,8 +46,34 @@ def plot_loss(train_losses, test_losses, titel_append='',save_path=None):
         plt.savefig(save_path) # or save 
     plt.close()
 
+def get_params(model,p_name):
+    params=[]
+    for name, param in model.named_parameters():
+        if (p_name==name[:len(p_name)]) and (('conv' in name) or ('fc' in name) or ('shortcut.0' in name)):
+            params.append(param.detach().view(-1))
+    params=torch.cat(params)
+    return params
 
-def plot_weight_distribution(model, bins=256, count_nonzero_only=False):
+def plot_weight_distribution( model,names, bins=256, count_nonzero_only=False,save_path=None):
+    # More precise control over layout
+    for name in names:
+        param_cpu = get_params(model,name).cpu()
+        if count_nonzero_only:
+            param_cpu = param_cpu[param_cpu != 0].view(-1)
+            plt.hist(param_cpu, bins=bins, density=True,
+                    color = 'blue', alpha = 0.5)
+        else:
+            plt.hist(param_cpu, bins=bins, density=True,
+                    color = 'blue', alpha = 0.5)
+        plt.xlabel(name)
+        plt.ylabel('density')
+        if save_path is None:
+            plt.show()
+        else:
+            plt.savefig(save_path+'.'+name+'.png') 
+        plt.close()
+
+def plot_weight_distribution_depricated(model, bins=256, count_nonzero_only=False):
     layer_count=0
     for name, param in model.named_modules():
         if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
@@ -55,7 +82,7 @@ def plot_weight_distribution(model, bins=256, count_nonzero_only=False):
     row= round(layer_count/col)
     if col*row<layer_count:
         col=col+1
-    fig, axes = plt.subplots(row,col, figsize=(40,40),constrained_layout=True)
+    fig, axes = plt.subplots(row,col, figsize=(10*col,12*row),constrained_layout=True)
     axes = axes.ravel()
     plot_index = 0
     for name, param in model.named_modules():
@@ -77,3 +104,23 @@ def plot_weight_distribution(model, bins=256, count_nonzero_only=False):
     fig.subplots_adjust(top=0.925,left=0.05, bottom=0.05)
     plt.show()
     plt.close()
+
+
+# def accumulate_plot_figures(save_path):
+#     # More precise control over layout
+#     for name in names:
+#         param_cpu = get_params(model,name).cpu()
+#         if count_nonzero_only:
+#             param_cpu = param_cpu[param_cpu != 0].view(-1)
+#             plt.hist(param_cpu, bins=bins, density=True,
+#                     color = 'blue', alpha = 0.5)
+#         else:
+#             plt.hist(param_cpu, bins=bins, density=True,
+#                     color = 'blue', alpha = 0.5)
+#         plt.xlabel(name)
+#         plt.ylabel('density')
+#         if save_path is None:
+#             plt.show()
+#         else:
+#             plt.savefig(save_path+name+'.png') 
+#         plt.close()

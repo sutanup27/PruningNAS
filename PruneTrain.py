@@ -28,29 +28,30 @@ model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' i
 
 model.to(device)
 
+# sparsity_dict = {      
+# 'conv1':0.85,
+# 'layer1.0.':0.90,
+# 'layer1.1.conv1':0.90,
+# 'layer2.0.conv1':0.75,
+# 'layer2.1.conv1':0.80,
+# 'layer3.0.conv1':0.65,
+# 'layer3.1.conv1':0.80,
+# 'layer4.0.conv1':0.90,
+# 'layer4.1.conv1':0.95,
+# }
+
 sparsity_dict = {      #for F
-'conv1':0.85,
-'layer1.0.':0.90,
-'layer1.1.conv1':0.90,
-'layer2.0.conv1':0.75,
-'layer2.1.conv1':0.80,
-'layer3.0.conv1':0.65,
-'layer3.1.conv1':0.80,
-'layer4.0.conv1':0.90,
-'layer4.1.conv1':0.95,
+'conv1':0.3,
+'layer1.0.conv1':0.3,
+'layer1.1.conv1':0.2,
+'layer2.0.conv1':0.3,
+'layer2.1.conv1':0.3,
+'layer3.0.conv1':0.4,
+'layer3.1.conv1':0.3,
+'layer4.0.conv1':0.7,
+'layer4.1.conv1':0.8,
 }
 
-# sparsity_dict = {      
-# 'backbone.conv0':0.80,
-# 'backbone.conv1':0.90,
-# 'backbone.conv2':0.80,
-# 'backbone.conv3':0.75,
-# 'backbone.conv4':0.70,
-# 'backbone.conv5':0.80,
-# 'backbone.conv6':0.80,
-# 'backbone.conv7':0.95,
-# 'fc2':0.90,
-# }
 train_dataloader,test_dataloader=get_dataloaders(path, batch_size=64 ) # Basemodel
 dense_model_accuracy=evaluate(model,test_dataloader)
 print('dense_model_accuracy:',dense_model_accuracy)

@@ -79,7 +79,7 @@ def apply_channel_sorting_on_vgg(model):
     return model
 
 @torch.no_grad()
-def apply_channel_sorting_on_resnet18(model):
+def apply_channel_sorting_on_resnet(model):
     model = copy.deepcopy(model)  # do not modify the original model
     # fetch all the conv and bn layers from the backbone
     all_convs = [ layer for layer in model.named_modules() if isinstance(layer, nn.Conv2d)]
@@ -117,8 +117,8 @@ def apply_channel_sorting_on_resnet18(model):
 def apply_channel_sorting(model,model_type):
     if model_type=='Vgg-16':
         return apply_channel_sorting_on_vgg(model)
-    elif model_type=='Resnet-18':
-        return apply_channel_sorting_on_resnet18(model)
+    elif model_type[:6]=='Resnet':
+        return apply_channel_sorting_on_resnet(model)
     else:
         print('model_type doesn\'t exists')
         exit(0)
@@ -172,7 +172,7 @@ def channel_prune_vgg(model,
     return model
 
 @torch.no_grad()
-def channel_prune_resnet18(model, prune_ratios: Union[float, dict,list]):    
+def channel_prune_resnet(model, prune_ratios: Union[float, dict,list]):    
     def prune_block(block, prune_ratios,n_keep):
         if block.shortcut:
             block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
@@ -222,11 +222,10 @@ def channel_prune_resnet18(model, prune_ratios: Union[float, dict,list]):
     i=1
     for name, layer in model.named_children():
         if isinstance(layer,nn.Sequential):
-            p_ratios=prune_ratios[i]
-            n_keep=prune_block(layer[0],p_ratios,n_keep)
-            p_ratios=prune_ratios[i+1]
-            n_keep=prune_block(layer[1],p_ratios,n_keep)
-            i=i+2
+            for b in layer:
+                p_ratios=prune_ratios[i]
+                n_keep=prune_block(b,p_ratios,n_keep)
+                i=i+1
     
     model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
     return model
@@ -234,8 +233,8 @@ def channel_prune_resnet18(model, prune_ratios: Union[float, dict,list]):
 def channel_prune(model, prune_ratio: Union[dict, float],model_type):
     if model_type=='Vgg-16':
         return channel_prune_vgg(model, prune_ratio)
-    elif model_type=='Resnet-18':
-        return channel_prune_resnet18(model, prune_ratio)
+    elif model_type[:6]=='Resnet':
+        return channel_prune_resnet(model, prune_ratio)
     else:
         print('model_type doesn\'t exists')
         exit(0)
