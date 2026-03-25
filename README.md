@@ -98,6 +98,3 @@ PruningNAS/checkpoint/<ModelName>/<PruneType>/
 - Set `seed` in the training/pruning scripts for repeatable runs.
 - Keep model and pruning settings aligned with your checkpoint names to avoid confusion.
 
-## License
-
-Add your preferred license here.
